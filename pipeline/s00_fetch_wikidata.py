@@ -8,10 +8,13 @@ raw/wd_buildings.csv  i, bag, labelEn, labelNl, en, nl, image, architects, style
                       and photos for the building cards
 raw/wd_monuments.csv  nr, bag, inception, label: rijksmonuments with their pand, for monuments.py
 raw/wd_architects.csv nr, a, label, born, died, nl: the architects (P84) of the monuments, for the graph
+raw/wd_kinds.json     {nr: [what the item is an instance of (P31), Dutch labels]}: 'grondzeiler', 'korenmolen', ...
+A theme (no gemeentecode) is found by number only; it runs after s01b_theme_panden, which gives its monuments panden.
 """
 import csv
 import json
 import time
+from pathlib import Path
 
 import requests
 
@@ -41,6 +44,7 @@ MONUMENTS = """SELECT ?nr ?bag (MIN(?inc) AS ?inception) (SAMPLE(?l) AS ?label) 
 
 BY_NUMBER = """SELECT ?i ?nr ?labelEn ?labelNl ?en ?nl (SAMPLE(?img) AS ?image)
   (GROUP_CONCAT(DISTINCT ?archL; separator="|") AS ?architects) (GROUP_CONCAT(DISTINCT ?styleL; separator="|") AS ?styles)
+  (GROUP_CONCAT(DISTINCT ?kindL; separator="|") AS ?kinds)
 WHERE {
   VALUES ?nr { %(values)s }
   ?i wdt:P359 ?nr .
@@ -51,6 +55,7 @@ WHERE {
   OPTIONAL { ?i wdt:P18 ?img }
   OPTIONAL { ?i wdt:P84 ?a . ?a rdfs:label ?archL FILTER(LANG(?archL) = "nl") }
   OPTIONAL { ?i wdt:P149 ?s . ?s rdfs:label ?styleL FILTER(LANG(?styleL) = "nl") }
+  OPTIONAL { ?i wdt:P31 ?k . ?k rdfs:label ?kindL FILTER(LANG(?kindL) = "nl") }
 } GROUP BY ?i ?nr ?labelEn ?labelNl ?en ?nl"""
 
 ARCHITECTS = """SELECT DISTINCT ?nr ?a ?label (YEAR(?b) AS ?born) (YEAR(?d) AS ?died) ?nl WHERE {
@@ -90,7 +95,7 @@ def write(name: str, rows: list[dict], cols: list[str]):
 def main():
     mons = json.load(open(f"{DATA}/raw/layers/monuments.json", encoding="utf-8"))
     panden = {m["nr"]: m["panden"] for m in mons}
-    rows = query(BUILDINGS)
+    rows = query(BUILDINGS) if GEMEENTE_CODE else []
     seen = {(r["i"], r["bag"]) for r in rows}
     found = by_number(BY_NUMBER, sorted(panden))
     for r in found:  # one row per building of the monument, as the pand query gives them
@@ -102,7 +107,12 @@ def main():
           sum(bool(r.get("image")) for r in found), "with a photo,", sum(bool(r.get("nl")) for r in found),
           "with a Dutch article")
     write("wd_buildings.csv", rows, ["i", "bag", "labelEn", "labelNl", "en", "nl", "image", "architects", "styles"])
-    write("wd_monuments.csv", query(MONUMENTS), ["nr", "bag", "inception", "label"])
+    write("wd_monuments.csv", query(MONUMENTS) if GEMEENTE_CODE else [], ["nr", "bag", "inception", "label"])
+    kinds = {}
+    for r in found:
+        kinds.setdefault(r["nr"], set()).update(k for k in (r.get("kinds") or "").split("|") if k)
+    Path(f"{DATA}/raw/wd_kinds.json").write_text(json.dumps({k: sorted(v) for k, v in kinds.items()}, ensure_ascii=False),
+                                                 encoding="utf-8")
     write("wd_architects.csv", by_number(ARCHITECTS, sorted(panden)), ["nr", "a", "label", "born", "died", "nl"])
 
 

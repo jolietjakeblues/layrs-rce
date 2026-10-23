@@ -1,0 +1,62 @@
+{
+  "label": "Molens in Zuid-Holland",
+  "label_short": "Molens",
+  "origin": [103900.0, 433300.0],
+  "starts": [
+    ["Kinderdijk", "Kinderdijk", 103900.0, 433300.0],
+    ["Schiedam", "Schiedam", 86836.0, 437325.0],
+    ["Leiden", "Leiden", 93296.0, 464343.0]
+  ],
+  "home": {"x": -16800, "z": -9000, "azimuth": 0, "elevation": 62, "span": 105000},
+  "roofs_within": 0,
+  "suspect_years": [],
+  "wikipedia": {"nl": "Windmolen", "en": "Windmill"},
+  "theme": {
+    "terms_zip": "data/objecten/pp_subtree_industrieenpoldermolen.zip",
+    "provincie": "Zuid-Holland",
+    "radius": 180,
+    "noun": ["mill", "mills", "molen", "molens"],
+    "credit": {
+      "label": "Allemolens.nl, Vereniging De Hollandsche Molen",
+      "url": "https://www.allemolens.nl/",
+      "search": "https://zoeken.allemolens.nl/zoeken.php?zoekterm="
+    },
+    "facets": [
+      {"id": "build", "title": "Type of mill", "title_nl": "Bouwtype", "groups": [
+        ["standerd", "Post mill", "Standerdmolen", "Standerdmolen", "standerdmolen"],
+        ["wip", "Hollow post mill", "Wipmolen of spinnekop", "Wipmolen", "wip[a-z]*molen|wipper[a-z]*|spinnekop|spinnenkop"],
+        ["paltrok", "Paltrok mill", "Paltrokmolen", "Paltrokmolen", "paltrok"],
+        ["grond", "Smock mill on the ground", "Grondzeiler", "Grondzeiler", "grondzeiler"],
+        ["stelling", "Mill with a stage", "Stellingmolen", "Stellingmolen", "stellingmolen|stelling"],
+        ["belt", "Mound mill", "Beltmolen", "Beltmolen", "beltmolen|op een belt|molenbelt"],
+        ["tjasker", "Tjasker", "Tjasker", "Tjasker", "tjasker"],
+        ["water", "Water-wheel mill", "Molen met waterrad", "Watermolen", "waterrad|bovenslag|onderslag|middenslag"],
+        ["boven", "Other tower or smock mill", "Overige bovenkruier", "Bovenkruier", "bovenkruier|binnenkruier|achtkant[a-z]*|ronde stenen|stenen molen"]
+      ], "fallback": "boven"},
+      {"id": "use", "title": "What it did", "title_nl": "Functie", "groups": [
+        ["koren", "Corn mill", "Korenmolen", "Korenmolen", "korenmolen|graanmolen|meelmolen"],
+        ["polder", "Drainage mill", "Poldermolen", "Windwatermolen", "poldermolen|[a-z]*watermolen|[a-z]*polder|bemal[a-z]*|scheprad|windmotor|boezemmolen|bovenmolen|middelmolen|ondermolen|peilmolen|strijkmolen|windwatermolen|watervluchtmolen|weidemolen|vijzelmolen|schepradmolen|bemaling"],
+        ["zaag", "Saw mill", "Zaagmolen", "Zaagmolen", "zaagmolen|houtzaag"],
+        ["olie", "Oil mill", "Oliemolen", "Oliemolen", "oliemolen"],
+        ["pel", "Hulling mill", "Pelmolen", "Pelmolen", "pelmolen|gortmolen|grutmolen"],
+        ["industrie", "Other industry", "Overige industrie", "Industrie- en poldermolen", "snuifmolen|specerijmolen|mosterdmolen|moutmolen|cacaomolen|trasmolen|verfmolen|papiermolen|volmolen|runmolen|kopermolen|schelpzandmolen|hennepklopper|walmolen"]
+      ]}
+    ]
+  },
+  "periods": [
+    ["p1", "Before 1600", "Vóór 1600", 1000, 1599, "#4a1410"],
+    ["p2", "1600–1699", "1600–1699", 1600, 1699, "#8c1c13"],
+    ["p3", "1700–1749", "1700–1749", 1700, 1749, "#c0462b"],
+    ["p4", "1750–1799", "1750–1799", 1750, 1799, "#d97a2b"],
+    ["p5", "1800–1849", "1800–1849", 1800, 1849, "#e5b13a"],
+    ["p6", "1850–1899", "1850–1899", 1850, 1899, "#8e9f3c"],
+    ["p7", "1900–1949", "1900–1949", 1900, 1949, "#3f8f6b"],
+    ["p8", "1950–1979", "1950–1979", 1950, 1979, "#2c7391"],
+    ["p9", "1980–1999", "1980–1999", 1980, 1999, "#3a4f9a"],
+    ["p10", "2000–today", "2000–nu", 2000, 2100, "#6a3f8f"]
+  ],
+  "tier1": [],
+  "steps": ["s00_theme_select", "s00_fetch_3dbag", "s00_fetch_3dbv", "s00_fetch_water", "s00_fetch_addresses",
+            "s01_load", "s01b_theme_panden", "s00_fetch_wikidata", "s02_attributes", "s01c_roofs", "s05_layers",
+            "s06_wiki", "s03_tiles", "s04_water", "s13_graph", "s14_search", "s15_addresses", "s16_register"]
+}

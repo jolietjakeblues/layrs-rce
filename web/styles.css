@@ -205,6 +205,14 @@ body.archeo .veil { display: none; }
 .howto { position: fixed; right: var(--gutter); bottom: calc(env(safe-area-inset-bottom, 0px) + 120px); color: var(--muted); background: rgba(228,232,234,.85); padding: 2px 8px; border-radius: 4px;
   font-size: 12px; pointer-events: none; }
 @media (max-width: 720px), (hover: none) { .howto { display: none; } }
+/* Zoom: in, out and the overview, stacked on the right above the timeline. */
+.zoom { position: fixed; right: var(--gutter); bottom: calc(env(safe-area-inset-bottom, 0px) + 156px); display: flex;
+  flex-direction: column; background: var(--paper); border-radius: 10px; box-shadow: 0 1px 0 var(--rule); overflow: hidden; }
+.zoom button { width: 38px; height: 38px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; }
+.zoom button + button { border-top: 1px solid var(--rule); }
+.zoom button:hover { background: var(--sky); }
+.zoom svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+@media (max-width: 720px), (hover: none) { .zoom { bottom: calc(env(safe-area-inset-bottom, 0px) + 120px); } }
 
 .timeline { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: flex-end; gap: 14px;
   padding: 0 var(--gutter) calc(env(safe-area-inset-bottom, 0px) + 14px); pointer-events: none; }

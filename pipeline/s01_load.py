@@ -16,9 +16,10 @@ PAND_COLS = ["identificatie", "oorspronkelijkbouwjaar", "status", "b3_bouwlagen"
 GONE = {"Pand gesloopt", "Niet gerealiseerd pand", "Pand ten onrechte opgevoerd", "Bouwvergunning verleend"}
 
 
-def from_3dbv():
-    """panden and parts in 3D BAG's columns, from the 3D Basisvoorziening (one LoD 1.2/1.3 prism per pand)."""
-    x = pd.concat(pyogrio.read_dataframe(f) for f in sorted(glob.glob(f"{DATA}/raw/3dbv/*.gpkg")))
+def from_3dbv(area):
+    """panden and parts in 3D BAG's columns, from the 3D Basisvoorziening (one LoD 1.2/1.3 prism per pand). Each sheet
+    is read only inside the area (the municipality, or a theme's discs): a sheet holds 5 x 6.25 km of buildings."""
+    x = pd.concat(pyogrio.read_dataframe(f, mask=area) for f in sorted(glob.glob(f"{DATA}/raw/3dbv/*.gpkg")))
     x = x[x.eindgeldigheid.isna() & ~x.status.isin(GONE)]
     x = x.sort_values("voorkomenidentificatie").drop_duplicates("identificatie", keep="last")
     x["identificatie"] = "NL.IMBAG.Pand." + x.identificatie
@@ -49,7 +50,7 @@ def main():
         q = gpd.GeoDataFrame(pd.concat(parts), geometry="geometry", crs=28992)
     else:
         print("no 3D BAG tiles: building from the 3D Basisvoorziening")
-        p, q = from_3dbv()
+        p, q = from_3dbv(city)
     p = p[p.representative_point().within(city)]
     q = q[q.identificatie.isin(p.identificatie)].drop_duplicates(["identificatie", "b3_pand_deel_id", "b3_dd_id"])
     p.to_parquet(f"{DATA}/panden.parquet"); q.to_parquet(f"{DATA}/parts.parquet")

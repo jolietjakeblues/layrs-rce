@@ -201,6 +201,7 @@ for (const p of periods) if (p.label_nl) NL_UI[p.label] = p.label_nl;
 Object.assign(NL_UI, {
   'Protected townscapes': 'Beschermde gezichten', 'From the register': 'Uit het register',
   'Part of the complex': 'Onderdeel van het complex', 'Read the full entry': 'Lees de hele beschrijving in het register',
+  'More about this mill on Allemolens.nl': 'Meer over deze molen op Allemolens.nl', 'with thanks': 'met dank',
   'Archaeology': 'Archeologie', 'Built': 'Gebouwd', 'Back to the city as built': 'Terug naar de gebouwde stad',
   'Turn the city over: what lies under the ground': 'Draai de stad om: wat er onder de grond ligt', 'Under the ground': 'Onder de grond', 'Underground': 'Ondergrond',
   'research areas': 'onderzoeksgebieden', 'Research area': 'Onderzoeksgebied', 'registered': 'geregistreerd',
@@ -215,6 +216,7 @@ Object.assign(NL_UI, {
     'Klik op een periode om alleen die te zien; klik op een vlak voor wat er gevonden is. Perioden en begrippen uit het Referentienetwerk (ABR), gegevens uit de Linked Data Voorziening van de RCE; alleen wat openbaar is.',
   'RCE image bank': 'Beeldbank RCE', 'Linked Data Voorziening': 'Linked Data Voorziening', 'In the Linked Data Voorziening': 'In de Linked Data Voorziening',
   'View in the Rijksmonumentenregister': 'Bekijk in het Rijksmonumentenregister', 'rights reserved': 'rechten voorbehouden', 'About the city': 'Over de stad',
+  'Zoom in': 'Inzoomen', 'Zoom out': 'Uitzoomen', 'Overview': 'Overzicht',
 });
 document.querySelector('.masthead h1').childNodes[1].textContent = config.label;
 // The about text, written from the city's own numbers and sources.
@@ -222,25 +224,41 @@ document.querySelector('.masthead h1').childNodes[1].textContent = config.label;
   const n = config.stats.buildings, bv = config.buildingSource === '3dbv';
   const [en, nl] = document.querySelectorAll('#about article');
   en.innerHTML = `<h2 id="about-title">About this map</h2>
-    <p>All ${n.toLocaleString('en')} buildings of ${config.label}, coloured by the year they were built and set in the history that shaped them.</p>
+    <p>${config.theme ? `All ${config.theme.markers.length.toLocaleString('en')} ${config.theme.noun[1]} that are national monuments in ${config.label.split(' in ').pop()}, each in its surroundings (${config.theme.radius} m around it), coloured by the year they were built.`
+      : `All ${n.toLocaleString('en')} buildings of ${config.label}, coloured by the year they were built and set in the history that shaped them.`}</p>
     <p class="notice">A test, built with the open pipeline of <a href="https://github.com/alexbarakov/amsterdam-by-building" target="_blank" rel="noopener">Amsterdam, building by building</a> by Alex Barakov, inspired by Sasha Bogachev's <a href="https://paris.bogachev.fr" target="_blank" rel="noopener">Paris, building by building</a>.</p>
     <h3>Data</h3><ul>
     <li>Buildings, heights, years: ${bv ? 'Kadaster 3D Basisvoorziening 2025 (height statistics per building, without roof shapes)' : '3D BAG (TU Delft), with LoD 2.2 roofs in the centre and for listed buildings'}, on the building register BAG. CC BY 4.0.</li>
     <li>Monuments, styles, complexes, makers, protected townscapes: national monument register (RCE), via its linked data and search index. CC0. Photos from the RCE image bank, mostly CC BY 4.0.</li>
-    <li>Water, boundary, addresses: BGT, BAG and Bestuurlijke Gebieden via PDOK; street names: Nationaal Wegenbestand. CC0.</li>
-    <li>Energy labels: RVO via RIVM Atlas Leefomgeving. Public domain.</li>
+    <li>Water, boundary, addresses: BGT, BAG and Bestuurlijke Gebieden via PDOK${config.theme ? '' : '; street names: Nationaal Wegenbestand'}. CC0.</li>
+    ${config.theme ? '' : '<li>Energy labels: RVO via RIVM Atlas Leefomgeving. Public domain.</li>'}
     <li>Names, photos: Wikidata, Wikipedia, Wikimedia Commons; each photo credits its author and licence.</li></ul>
     <h3>Method</h3><p>Rounded years in BAG are spread across their rounding step; where the monument register dates a building earlier, the register wins. Approximate years are paler and marked “c.”.</p>`;
   nl.innerHTML = `<h2>Over deze kaart</h2>
-    <p>Alle ${n.toLocaleString('nl-NL')} gebouwen van ${config.label}, gekleurd naar hun bouwjaar en geplaatst in de geschiedenis die ze vormde.</p>
+    <p>${config.theme ? `Alle ${config.theme.markers.length.toLocaleString('nl-NL')} ${config.theme.noun[3]} die rijksmonument zijn in ${config.label.split(' in ').pop()}, elk in zijn omgeving (${config.theme.radius} m eromheen), gekleurd naar bouwjaar.`
+      : `Alle ${n.toLocaleString('nl-NL')} gebouwen van ${config.label}, gekleurd naar hun bouwjaar en geplaatst in de geschiedenis die ze vormde.`}</p>
     <p class="notice">Een test, gebouwd met de open pijplijn van <a href="https://github.com/alexbarakov/amsterdam-by-building" target="_blank" rel="noopener">Amsterdam, building by building</a> van Alex Barakov, geïnspireerd door <a href="https://paris.bogachev.fr" target="_blank" rel="noopener">Paris, building by building</a> van Sasha Bogachev.</p>
     <h3>Gegevens</h3><ul>
     <li>Gebouwen, hoogtes, bouwjaren: ${bv ? '3D Basisvoorziening 2025 van het Kadaster (hoogtestatistieken per gebouw, zonder dakvormen)' : '3D BAG (TU Delft), met de daken uit LoD 2.2 in het centrum en voor monumenten'}, op basis van de BAG. CC BY 4.0.</li>
     <li>Monumenten, stijlen, complexen, makers, beschermde gezichten: rijksmonumentenregister (RCE), via de linked data en de zoekindex. CC0. Foto's uit de beeldbank van de RCE, meestal CC BY 4.0.</li>
-    <li>Water, grens, adressen: BGT, BAG en Bestuurlijke Gebieden via PDOK; straatnamen: Nationaal Wegenbestand. CC0.</li>
-    <li>Energielabels: RVO via de Atlas Leefomgeving van het RIVM. Publiek domein.</li>
+    <li>Water, grens, adressen: BGT, BAG en Bestuurlijke Gebieden via PDOK${config.theme ? '' : '; straatnamen: Nationaal Wegenbestand'}. CC0.</li>
+    ${config.theme ? '' : '<li>Energielabels: RVO via de Atlas Leefomgeving van het RIVM. Publiek domein.</li>'}
     <li>Namen, foto's: Wikidata, Wikipedia, Wikimedia Commons; bij elke foto staan maker en licentie.</li></ul>
     <h3>Methode</h3><p>Afgeronde jaartallen in de BAG zijn gespreid over hun afrondingsstap; waar het monumentenregister een gebouw eerder dateert, wint het register. Geschatte jaren zijn lichter en gemarkeerd met “c.”.</p>`;
+  // a theme credits its own sources, and says what is drawn rather than measured
+  if (config.theme) {
+    const c = config.theme.credit;
+    en.querySelector('h2').nextElementSibling.insertAdjacentHTML('afterend', `<h3>With thanks</h3>
+      <p>Every mill links to <a href="${c.url}" target="_blank" rel="noopener">Allemolens.nl</a> of the Vereniging De Hollandsche
+      Molen, the source for the history of every mill in the Netherlands, with our thanks. Its texts and images are theirs and
+      are not copied here. The types of mill come from the Referentienetwerk (RCE), the register's descriptions and Wikidata.
+      The turning sails are an illustration: no 3D model of the buildings has sails.</p>`);
+    nl.querySelector('h2').nextElementSibling.insertAdjacentHTML('afterend', `<h3>Met dank aan</h3>
+      <p>Elke molen linkt naar <a href="${c.url}" target="_blank" rel="noopener">Allemolens.nl</a> van de Vereniging De Hollandsche
+      Molen, de bron voor de geschiedenis van alle molens in Nederland, met dank. Hun teksten en beelden zijn van hen en
+      staan hier niet overgenomen. De molentypen komen uit het Referentienetwerk (RCE), de omschrijvingen in het register en
+      Wikidata. De draaiende wieken zijn een illustratie: geen 3D-model van de gebouwen heeft wieken.</p>`);
+  }
   // the archaeology mode's own section; setArcheo() moves it to the top while the city is turned over
   if (config.archeology) {
     en.insertAdjacentHTML('beforeend', `<section class="about-arch"><h3>Under the ground: archaeology</h3>
@@ -274,7 +292,7 @@ document.querySelector('.masthead h1').childNodes[1].textContent = config.label;
     for (const [lang, el, more] of [['en', en, 'Read more on Wikipedia'], ['nl', nl, 'Lees verder op Wikipedia']]) {
       const w = a[lang] || a.nl || a.en;
       if (!w) continue;
-      el.querySelector('h2').nextElementSibling.insertAdjacentHTML('afterend', `<h3>${lang === 'nl' ? 'Over de stad' : 'About the city'}</h3>
+      el.querySelector('h2').nextElementSibling.insertAdjacentHTML('afterend', `<h3>${config.theme ? (lang === 'nl' ? `Over ${config.theme.noun[3]}` : `About ${config.theme.noun[1]}`) : lang === 'nl' ? 'Over de stad' : 'About the city'}</h3>
         <p lang="${a[lang] ? lang : 'nl'}">${esc(w.extract)} <a href="${esc(w.url)}" target="_blank" rel="noopener">${more}</a></p>`);
     }
   }).catch(() => {});
@@ -297,11 +315,17 @@ controls.maxPolarAngle = Math.PI * 0.47;
 controls.minDistance = 60;
 controls.maxDistance = 30000;
 
-function goHome() {
+// The view the map opens on: the whole city, or the whole province of a theme.
+function homeView() {
   const h = config.home, az = THREE.MathUtils.degToRad(h.azimuth), el = THREE.MathUtils.degToRad(h.elevation);
   const d = h.span * 0.9;
-  controls.target.set(h.x, 0, h.z);
-  camera.position.set(h.x + d * Math.cos(el) * Math.sin(az), d * Math.sin(el), h.z + d * Math.cos(el) * Math.cos(az));
+  return [new THREE.Vector3(h.x, 0, h.z),
+    new THREE.Vector3(h.x + d * Math.cos(el) * Math.sin(az), d * Math.sin(el), h.z + d * Math.cos(el) * Math.cos(az))];
+}
+function goHome() {
+  const [t, p] = homeView();
+  controls.target.copy(t);
+  camera.position.copy(p);
   controls.update();
 }
 goHome();
@@ -360,6 +384,175 @@ gzBtn.onclick = () => {
   townscapes.visible = !townscapes.visible;
   gzBtn.setAttribute('aria-pressed', String(townscapes.visible));
 };
+
+// ---------- A theme: one kind of monument across a province ----------
+// (cities/<theme>.json, pipeline/s00_theme_select.py) Every monument stands in a small diorama of its surroundings.
+// From afar each is a marker: hovering one shows its card, a click flies there. Close up a windmill gets a turning
+// cross of sails, an illustration: neither 3D BAG nor the 3D Basisvoorziening models sails.
+const THEME = config.theme;
+const MARKER_FAR = 2500;        // metres of camera distance above which markers lead and buildings are too small
+let markerPts = null, freshPts = null, sails = [];
+const placeNames = [];
+// the overview's markers, map and sails: drawn, but never picked as buildings (pick())
+const themeGroup = new THREE.Group();
+scene.add(themeGroup);
+if (THEME) {
+  controls.maxDistance = Math.max(controls.maxDistance, config.home.span * 1.6);
+  camera.far = Math.max(camera.far, config.home.span * 5);
+  camera.updateProjectionMatrix();
+  goHome();  // again, now the province fits within maxDistance
+  // In the order they were built, each with its year: playing the timeline shows them going up one by one.
+  const M = THEME.markers;
+  M.forEach(m => { m[8] = attrs.getInt16(m[2] * config.attrStride + 12, true); });
+  M.sort((a, b) => a[8] - b[8]);
+  const pos = new Float32Array(M.length * 3);
+  M.forEach((m, i) => pos.set([m[0], m[3] + 6, m[1]], 3 * i));
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(M.length * 3), 3));
+  markerPts = new THREE.Points(g, new THREE.PointsMaterial({ size: 13, sizeAttenuation: false, map: markerTexture(),
+    vertexColors: true, transparent: true, depthTest: false, alphaTest: 0.05 }));
+  markerPts.renderOrder = 10;
+  themeGroup.add(markerPts);
+  // the ones just built, while the timeline plays: a ring around each
+  const fg = new THREE.BufferGeometry();
+  fg.setAttribute('position', g.attributes.position);
+  freshPts = new THREE.Points(fg, new THREE.PointsMaterial({ size: 34, sizeAttenuation: false, map: ringTexture(),
+    color: '#ec0000', transparent: true, depthTest: false }));
+  freshPts.renderOrder = 11;
+  freshPts.visible = false;
+  themeGroup.add(freshPts);
+  // The province under the sites, with its municipalities' borders and names: something to find one's way by from afar.
+  const P = THEME.map;
+  const shape = r => new THREE.Shape(Array.from({ length: r.length / 2 }, (_, i) => new THREE.Vector2(r[2 * i], r[2 * i + 1])));
+  const fill = new THREE.Mesh(new THREE.ShapeGeometry(P.province.map(shape)).rotateX(Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: LAND, depthWrite: false, side: THREE.DoubleSide }));
+  fill.position.y = -0.6;
+  fill.renderOrder = -1;
+  const seg = [];
+  for (const r of P.borders) for (let i = 0; i + 3 < r.length; i += 2) seg.push(r[i], 0, r[i + 1], r[i + 2], 0, r[i + 3]);
+  const borders = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(seg, 3)),
+    new THREE.LineBasicMaterial({ color: '#b9b4a8' }));
+  borders.position.y = 0.5;
+  themeGroup.add(fill, borders);
+  for (const [name, x, z] of P.names) {
+    const s = textSprite(name);
+    s.position.set(x, 30, z);
+    placeNames.push(s);
+    themeGroup.add(s);
+  }
+  // Sails: four slender blades on a hub, turned to the south-west (the prevailing wind), at the top of the body.
+  const blade = (w, l) => new THREE.BoxGeometry(w, l, 0.3).translate(0, l / 2 + 0.6, 0);
+  const sailMat = new THREE.MeshBasicMaterial({ color: '#4a3f35' });
+  for (const m of M) {
+    if (!m[7] || m[3] < 6) continue;
+    // a mill's arms reach about as far as its body is high; the hub sits in front of the cap
+    const L = Math.min(15, Math.max(8, m[3] * 0.8));
+    const parts = [0, 1, 2, 3].map(k => blade(1.9, L).rotateZ(k * Math.PI / 2));
+    const geo = mergeBoxes(parts);
+    const hub = new THREE.Group();
+    hub.position.set(m[0] - 3.5, Math.max(m[3] * 0.9, L + 1.5), m[1] + 3.5);
+    hub.lookAt(m[0] - 30, hub.position.y, m[1] + 30);
+    const cross = new THREE.Mesh(geo, sailMat);
+    hub.userData.year = m[8];
+    cross.rotation.z = (m[2] % 7) * 0.4;
+    hub.add(cross);
+    themeGroup.add(hub);
+    sails.push(cross);
+  }
+}
+function markerTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const x = c.getContext('2d');
+  // a white disc, tinted per marker, with the cross of sails cut out of it
+  x.fillStyle = '#fff'; x.beginPath(); x.arc(32, 32, 30, 0, 7); x.fill();
+  x.globalCompositeOperation = 'destination-out';
+  x.lineWidth = 7; x.lineCap = 'round';
+  x.beginPath(); x.moveTo(16, 16); x.lineTo(48, 48); x.moveTo(48, 16); x.lineTo(16, 48); x.stroke();
+  return new THREE.CanvasTexture(c);
+}
+// Markers take the colours of the layer shown, like the buildings do; dark when none is.
+function colorMarkers() {
+  if (!markerPts) return;
+  const L = uniforms.uMode.value === MODE.layers ? activeLayer : null, st = config.attrStride, c = new THREE.Color();
+  const attr = markerPts.geometry.attributes.color;
+  THEME.markers.forEach((m, i) => {
+    const o = m[2] * st, lay0 = attrs.getUint32(o + 20, true), lay1 = attrs.getUint32(o + 24, true);
+    const k = L ? L.groups.findIndex(g => groupOn[g.bit] !== false && (g.bit < 32 ? (lay0 >>> g.bit) & 1 : (lay1 >>> (g.bit - 32)) & 1)) : -1;
+    c.set(!L ? '#1b1b1b' : k >= 0 && k < MAX_GROUPS ? GROUP_COLORS[k] : '#c9c5bb');
+    attr.setXYZ(i, c.r, c.g, c.b);
+  });
+  attr.needsUpdate = true;
+}
+function ringTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const x = c.getContext('2d');
+  x.strokeStyle = '#fff'; x.lineWidth = 6; x.beginPath(); x.arc(32, 32, 27, 0, 7); x.stroke();
+  return new THREE.CanvasTexture(c);
+}
+function textSprite(text) {
+  const c = document.createElement('canvas'), x = c.getContext('2d'), px = 40;
+  x.font = `500 ${px}px system-ui, sans-serif`;
+  c.width = Math.ceil(x.measureText(text).width) + 16; c.height = px + 16;
+  x.font = `500 ${px}px system-ui, sans-serif`;
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.lineWidth = 8; x.strokeStyle = 'rgba(244,243,239,0.9)'; x.strokeText(text, c.width / 2, c.height / 2);
+  x.fillStyle = '#8a867c'; x.fillText(text, c.width / 2, c.height / 2);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), sizeAttenuation: false,
+    depthTest: false, transparent: true }));
+  const h = 0.016;
+  s.scale.set(h * c.width / c.height, h, 1);
+  s.renderOrder = 9;
+  return s;
+}
+function mergeBoxes(parts) {
+  let n = 0;
+  const pos = [], idx = [];
+  for (const p of parts) {
+    pos.push(...p.attributes.position.array);
+    idx.push(...p.index.array.map(i => i + n));
+    n += p.attributes.position.count;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  return g;
+}
+// The marker nearest the pointer on screen, within reach; while the camera is far out.
+const markerScreen = new THREE.Vector3();
+function markerAt(x, y) {
+  if (!THEME || camera.position.distanceTo(controls.target) < MARKER_FAR) return null;
+  let best = null, bd = 14;
+  for (const m of THEME.markers) {
+    if (m[8] > uniforms.uYear.value) break;  // not built yet; the markers are in the order they were built
+    markerScreen.set(m[0], m[3] + 6, m[1]).project(camera);
+    const d = Math.hypot((markerScreen.x + 1) / 2 * innerWidth - x, (1 - markerScreen.y) / 2 * innerHeight - y);
+    if (markerScreen.z < 1 && d < bd) { bd = d; best = m; }
+  }
+  return best;
+}
+function stepTheme(now, dist) {
+  if (!THEME) return;
+  markerPts.material.opacity = Math.max(0, Math.min(1, (dist - 900) / 1600));
+  markerPts.visible = markerPts.material.opacity > 0;
+  // only the mills standing in the year shown; while playing, the ones built in the last moments get a ring
+  const M = THEME.markers, Y = uniforms.uYear.value;
+  let built = 0;
+  while (built < M.length && M[built][8] <= Y) built++;
+  markerPts.geometry.setDrawRange(0, built);
+  let fresh = built;
+  while (playing && fresh > 0 && M[fresh - 1][8] > Y - uniforms.uRise.value * 2) fresh--;
+  freshPts.geometry.setDrawRange(fresh, built - fresh);
+  freshPts.visible = markerPts.visible && built > fresh;
+  freshPts.material.opacity = markerPts.material.opacity;
+  for (const s of sails) s.parent.visible = s.parent.userData.year <= Y;
+  const names = Math.max(0, Math.min(1, (dist - 12000) / 8000));
+  for (const s of placeNames) { s.material.opacity = names; s.visible = names > 0; }
+  const spin = now / 1000 * 0.9;
+  sails.forEach((s, i) => { s.rotation.z = spin + i * 0.7; });
+}
 
 // ---------- Archaeology ----------
 // A second city under the first (pipeline/s17_archeo.py). The toggle turns the map over: the camera swings through
@@ -918,6 +1111,7 @@ function pick(x, y) {
   for (const m of meshes) m.material = m.userData.pick;
   flat.visible = false;
   labelGroup.visible = false;
+  themeGroup.visible = false;
   renderer.setRenderTarget(pickTarget);
   renderer.setClearColor(0x000000, 0);
   renderer.clear();
@@ -927,6 +1121,7 @@ function pick(x, y) {
   renderer.setClearColor(SKY, 1);
   flat.visible = true;
   labelGroup.visible = true;
+  themeGroup.visible = true;
   for (const m of meshes) m.material = m.userData.draw;
   camera.clearViewOffset();
   return pickPixel[0] + pickPixel[1] * 256 + pickPixel[2] * 65536 - 1;
@@ -1143,6 +1338,7 @@ function cardHtml(gid, pinned) {
   const sources = [
     wikiOf(w)?.url && link(wikiOf(w).url, t(wikiOf(w).lang === 'nl' ? 'Dutch Wikipedia' : 'Wikipedia')),
     b.mon && link(`https://monumentenregister.cultureelerfgoed.nl/monumenten/${b.mon}`, t('Monument register')),
+    THEME?.credit && b.mon && link(THEME.credit.search + encodeURIComponent([reg?.name || w?.label_nl || w?.label, reg?.place].filter(Boolean).join(' ')), 'Allemolens.nl'),
     ldvLink,
     link(`https://bagviewer.kadaster.nl/lvbag/bag-viewer/?objectId=${b.bag}`, t('BAG register')),
     link(googleMapsUrl(b, addressOf(b.gid, () => {})), 'Google Maps'),
@@ -1157,6 +1353,8 @@ function cardHtml(gid, pinned) {
         reg.complex.cho ? ` · ${link(reg.complex.cho, `${t('Linked Data Voorziening')} (CHO ${reg.complex.cho.split('/').pop()})`)}` : ''}</p>` : ''}
       <p class="extract" lang="nl">${esc(reg.text)}</p>
       <p class="reg-main">${link(reg.url, `${t('View in the Rijksmonumentenregister')} (${LANG === 'nl' ? 'nr.' : 'no.'} ${b.mon})`)}</p>
+      ${THEME?.credit ? `<p>${link(THEME.credit.search + encodeURIComponent([reg.name || w?.label_nl || w?.label, reg.place].filter(Boolean).join(' ')),
+        t('More about this mill on Allemolens.nl'))} <span class="why">(${esc(THEME.credit.label)}, ${t('with thanks')})</span></p>` : ''}
       ${reg.cho ? `<p class="ldv">${t('In the Linked Data Voorziening')}: ${link(reg.cho, reg.cho)}</p>` : ''}</section>` : '';
   const dating = b.orig !== b.year ? `${t(DATE_NOTE[b.flag] || '')} ${t('BAG gives')} ${b.orig}.` : (DATE_NOTE[b.flag] && t(DATE_NOTE[b.flag]));
   return `
@@ -1240,6 +1438,8 @@ canvas.addEventListener('pointerup', e => {
     return;
   }
   if (ARCH.on) { archClick(e.clientX, e.clientY); return; }
+  const mk = markerAt(e.clientX, e.clientY);
+  if (mk) { card.hidden = true; flyTo(mk[0], mk[1], () => pinCard(mk[2], innerWidth * 0.62, innerHeight * 0.22), 420); return; }
   const gid = pick(e.clientX, e.clientY);
   pinCard(gid === pinnedGid ? -1 : gid, e.clientX, e.clientY);
 });
@@ -1272,6 +1472,24 @@ function stepFlight(now) {
   camera.position.lerpVectors(flight.fromP, flight.toP, e);
   if (k >= 1) { const d = flight.done; flight = null; d?.(); }
 }
+
+// Zoom buttons, for those without a scroll wheel: in, out, and back to the overview the map opened on.
+function zoomBy(f) {
+  const off = camera.position.clone().sub(controls.target);
+  off.setLength(THREE.MathUtils.clamp(off.length() * f, controls.minDistance, controls.maxDistance));
+  flight = { t0: performance.now(), dur: 450, fromT: controls.target.clone(), toT: controls.target.clone(),
+    fromP: camera.position.clone(), toP: controls.target.clone().add(off) };
+}
+document.querySelector('.zoom-in').onclick = () => zoomBy(0.5);
+document.querySelector('.zoom-out').onclick = () => zoomBy(2);
+document.querySelector('.zoom-home').onclick = () => {
+  let [t, p] = homeView();
+  if (ARCH.on) {  // under the ground: the same overview, seen from below as it is now
+    t = new THREE.Vector3(t.x, ARCH_CENTRE, t.z);
+    p = t.clone().add(camera.position.clone().sub(controls.target).setLength(config.home.span * 0.9));
+  }
+  flight = { t0: performance.now(), dur: 1400, fromT: controls.target.clone(), toT: t, fromP: camera.position.clone(), toP: p };
+};
 
 // A text in the reader's language: {en, nl} objects as the walks carry them.
 const L10 = o => o?.[LANG] || o?.en || '';
@@ -1770,8 +1988,19 @@ function collapsePanelOnPhone() { if (phone.matches) setCollapsed(true); }
 // On a phone, choosing Layers in the mode bar opens the list of layers.
 document.querySelector(`.modes button[data-mode="${MODE.layers}"]`)?.addEventListener('click', () => { if (phone.matches) setCollapsed(false); });
 setCollapsed(phone.matches);
+// A theme counts its monuments, not every building in their surroundings: in the legend, the timeline and the tally.
+const HIST = !THEME ? config.histogram : THEME.markers.reduce((h, m) => {
+  (h[m[8]] ||= periods.map(() => 0))[periods.indexOf(periodOf(m[8]))]++;
+  return h;
+}, {});
+// a layer group's buildings per year; in a theme only its monuments
+const groupYears = g => !THEME ? g.years : THEME.markers.reduce((h, m) => {
+  const w = attrs.getUint32(m[2] * config.attrStride + (g.bit < 32 ? 20 : 24), true);
+  if ((w >>> (g.bit % 32)) & 1) h[m[8]] = (h[m[8]] || 0) + 1;
+  return h;
+}, {});
 const totals = periods.map(() => 0);
-for (const v of Object.values(config.histogram)) v.forEach((n, i) => totals[i] += n);
+for (const v of Object.values(HIST)) v.forEach((n, i) => totals[i] += n);
 const fmt = n => n.toLocaleString(fmtLocale());
 let activeLayer = null;
 const SECTION_ORDER = ['Discover', 'Architecture', 'Trade and empire', 'Art and craft', 'Science and learning',
@@ -1859,7 +2088,7 @@ function renderPanel() {
     panel.querySelector('.jump').insertAdjacentHTML('afterbegin', `<button data-sec="today" title="${t('Buildings today')}" aria-label="${t('Buildings today')}">${sectionIcon('Buildings today')}</button>`);
     panel.querySelector('.jump').insertAdjacentHTML('afterend', `<h2 class="section" id="sec-today">${sectionIcon('Buildings today')}${t('Buildings today')}</h2>
       <div class="layers"><button class="layer view" data-view="floors"><b>${t('Storeys')}</b><span class="n">${fmt(config.stats.buildings)}</span><span class="era">${t('3D BAG')}</span></button>
-      <button class="layer view" data-view="energy"><b>${t('Energy label')}</b><span class="n">${fmt(labelled)}</span><span class="era">${t('RVO')}</span></button></div>`);
+      ${labelled ? `<button class="layer view" data-view="energy"><b>${t('Energy label')}</b><span class="n">${fmt(labelled)}</span><span class="era">${t('RVO')}</span></button>` : ''}</div>`);
     panel.querySelectorAll('.layer.view').forEach(b => b.onclick = () => setBuildingView(MODE[b.dataset.view]));
     panel.querySelectorAll('.jump button').forEach(b => b.onclick = () =>
       panel.querySelector(`#sec-${b.dataset.sec.replace(/\W+/g, '-')}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -1922,7 +2151,7 @@ function fitToLayer(L) {
   const free = Math.max(0.4, 1 - pr / innerWidth);
   const half = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
   const span = Math.max(z1 - z0, (x1 - x0) / (camera.aspect * free), 120);
-  const distance = Math.min(7000, Math.max(320, span / 2 / half * 1.35));
+  const distance = Math.min(THEME ? controls.maxDistance : 7000, Math.max(320, span / 2 / half * 1.35));
   const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).setY(0).normalize();
   const shift = (pr / innerWidth / 2) * 2 * distance * half * camera.aspect;
   const cx = (x0 + x1) / 2 - right.x * shift, cz = (z0 + z1) / 2 - right.z * shift;
@@ -1935,7 +2164,7 @@ function setLayer(L) {
   const bits = Array(MAX_GROUPS).fill(-1);
   if (L) L.groups.forEach((g, i) => { if (i < MAX_GROUPS && groupOn[g.bit] !== false) bits[i] = g.bit; });
   uniforms.uGroupBit.value = bits;
-  renderPanel(); drawHist();
+  renderPanel(); drawHist(); colorMarkers();
 }
 
 document.querySelectorAll('.modes button[data-mode]').forEach(b => b.onclick = () => {
@@ -1947,14 +2176,14 @@ document.querySelectorAll('.modes button[data-mode]').forEach(b => b.onclick = (
   if (uniforms.uMode.value === MODE.layers && activeLayer) uniforms.uLayerAt.value = performance.now() / 1000;
   // On a phone the sheet opens only when there is a choice to make: a layer to pick.
   if (!phone.matches || (uniforms.uMode.value === MODE.layers && !activeLayer)) setCollapsed(false);
-  renderPanel(); drawHist();
+  renderPanel(); drawHist(); colorMarkers();
 });
 
 // ---------- Timeline ----------
 const hist = document.getElementById('hist');
 const hctx = hist.getContext('2d');
 const T0 = Math.floor(config.yearMin / 50) * 50, T1 = config.yearMax + 1;
-const years = Object.entries(config.histogram).map(([y, v]) => [+y, v]);
+const years = Object.entries(HIST).map(([y, v]) => [+y, v]);
 const yMax = Math.max(...years.map(([, v]) => v.reduce((a, b) => a + b, 0)));
 const xOf = y => (y - T0) / (T1 - T0) * hist.clientWidth;
 const yearOf = x => Math.round(T0 + x / hist.clientWidth * (T1 - T0));
@@ -1967,7 +2196,7 @@ function layerGroupsShown() {
 function visibleCount() {
   const Y = uniforms.uYear.value;
   const shown = layerGroupsShown();
-  if (shown.length) return shown.reduce((n, g) => n + Object.entries(g.years).reduce((m, [y, c]) => m + (+y <= Y ? c : 0), 0), 0);
+  if (shown.length) return shown.reduce((n, g) => n + Object.entries(groupYears(g)).reduce((m, [y, c]) => m + (+y <= Y ? c : 0), 0), 0);
   let n = 0;
   for (const [y, v] of years) if (y <= Y) v.forEach((c, i) => { if (uniforms.uMode.value !== MODE.period || maskTarget[i]) n += c; });
   return n;
@@ -1994,14 +2223,15 @@ function drawHist() {
     }
     // Stack the groups per year; the stack's total height follows sqrt(total), split in proportion.
     const total = {};
-    for (const g of shown) for (const [y, c] of Object.entries(g.years)) total[y] = (total[y] || 0) + c;
+    const gy = shown.map(groupYears);
+    for (const v of gy) for (const [y, c] of Object.entries(v)) total[y] = (total[y] || 0) + c;
     const lMax = Math.max(1, ...Object.values(total));
     const stack = {};
-    for (const g of shown) for (const [ys, c] of Object.entries(g.years)) {
+    shown.forEach((g, k) => { for (const [ys, c] of Object.entries(gy[k])) {
       const y = +ys, full = Math.sqrt(total[ys] / lMax) * (plotH - 6) * 0.9, bh = full * c / total[ys];
       bar(y, bh, plotH - (stack[y] || 0), g.color, y <= Y);
       stack[y] = (stack[y] || 0) + bh;
-    }
+    } });
   } else {
     for (const [y, v] of years) {
       let top = plotH;
@@ -2049,7 +2279,13 @@ let playing = false, playT0 = 0, playStart = 0;
 const playBtn = document.getElementById('play');
 const playIcon = document.getElementById('play-icon');
 const DURATION = (+new URLSearchParams(location.search).get('film') || 30) * 1000; // ?film=6 for a short film
+// A theme spends the film's time evenly over its monuments, from a little before the first was built to today.
+const playYears = THEME && [THEME.markers[0][8] - 10, ...THEME.markers.map(m => m[8]), config.yearMax];
 function playYear(t) {
+  if (playYears) {
+    const i = t * (playYears.length - 1), k = Math.min(Math.floor(i), playYears.length - 2);
+    return playYears[k] + (playYears[k + 1] - playYears[k]) * (i - k);
+  }
   const k = 0.35; // share of time spent before 1850
   return t < k ? T0 + (1850 - T0) * (t / k) : 1850 + (config.yearMax - 1850) * ((t - k) / (1 - k));
 }
@@ -2227,7 +2463,10 @@ orbitTick();
 function applyStaticText() {
   document.querySelector('.gz-toggle span').textContent = t('Protected townscapes');
   document.documentElement.lang = LANG;
-  document.querySelector('.dek').textContent = t('Every building standing today, by age and historical context.');
+  const where = config.label.split(' in ').pop();
+  document.querySelector('.dek').textContent = !THEME ? t('Every building standing today, by age and historical context.')
+    : LANG === 'nl' ? `Elke rijksmonumentale ${THEME.noun[2]} in ${where}, in zijn omgeving.`
+    : `Every listed ${THEME.noun[0]} in ${where}, in its surroundings.`;
   document.querySelector('.about-open').textContent = t('About');
   setTimeout(placeFind, 0);
   findInput.placeholder = t('Search'); findInput.setAttribute('aria-label', t('Search a building, address or street'));
@@ -2240,8 +2479,12 @@ function applyStaticText() {
   // the switch names where it goes: under the ground, or back to the city as built
   archBtn.querySelector('span').textContent = t(ARCH.on ? 'Built' : 'Archaeology');
   archBtn.title = t(ARCH.on ? 'Back to the city as built' : 'Turn the city over: what lies under the ground');
-  document.querySelector('.tally-count').childNodes[1].textContent = ' ' + t(ARCH.on ? 'research areas' : 'buildings');
+  document.querySelector('.tally-count').childNodes[1].textContent = ' ' + (ARCH.on ? t('research areas') : THEME ? THEME.noun[LANG === 'nl' ? 3 : 1] : t('buildings'));
   document.querySelector('.howto').textContent = t('Drag to turn. Right-drag or Shift-drag to move. Scroll to zoom.');
+  for (const [cls, label] of [['zoom-in', 'Zoom in'], ['zoom-out', 'Zoom out'], ['zoom-home', 'Overview']]) {
+    const b = document.querySelector('.' + cls);
+    b.title = t(label); b.setAttribute('aria-label', t(label));
+  }
   const ld = document.getElementById('loading'); if (ld.firstChild) ld.firstChild.textContent = t('Building the city') + ' ';
   playBtn.setAttribute('aria-label', t(playing ? 'Pause' : "Play the city's growth"));
   document.querySelectorAll('.lang [data-lang]').forEach(b => b.setAttribute('aria-pressed', b.dataset.lang === LANG));
@@ -2288,8 +2531,10 @@ renderer.setAnimationLoop(now => {
     if (t >= 1) stopPlay();
     drawHist();
   }
+  stepTheme(now, dist);
   if (pointer && !dragging && !ARCH.on && frame % 3 === 0) {
-    const gid = pick(pointer[0], pointer[1]);
+    const mk = markerAt(pointer[0], pointer[1]);
+    const gid = mk ? mk[2] : pick(pointer[0], pointer[1]);
     uniforms.uHover.value = gid;
     showCard(gid, pointer[0], pointer[1]);
   }

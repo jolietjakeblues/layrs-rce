@@ -17,7 +17,7 @@ from pathlib import Path
 
 import geopandas as gpd
 
-from .city import DATA, LABEL
+from .city import DATA, LABEL, THEME
 from .monuments import wd_monuments
 
 LAYERS = []
@@ -26,8 +26,11 @@ REGISTER = ("Rijksmonumentenregister, RCE", "https://monumentenregister.culturee
 
 
 def layer(**meta):
+    """Register a layer. scope="city" keeps it out of a theme, where the monuments are all of one kind."""
     def wrap(fn):
-        LAYERS.append(dict(meta, source_fn=fn))
+        if not (THEME and meta.pop("scope", None) == "city"):
+            meta.pop("scope", None)
+            LAYERS.append(dict(meta, source_fn=fn))
         return fn
     return wrap
 
@@ -129,7 +132,7 @@ FUNCTIONS = [
 
 
 @layer(
-    id="register", section="Architecture", section_nl="Architectuur",
+    scope="city", id="register", section="Architecture", section_nl="Architectuur",
     title="National monuments", title_nl="Rijksmonumenten", era="All periods", era_nl="Alle perioden",
     text=(f"The State lists the buildings of national value in {LABEL} in its monument register, with what each "
           "was built for: houses, churches and convents, defences, warehouses and shops, waterworks, gardens."),
@@ -156,7 +159,7 @@ def register():
 
 
 @layer(
-    id="gables", section="Architecture", section_nl="Architectuur",
+    scope="city", id="gables", section="Architecture", section_nl="Architectuur",
     title="Gables", title_nl="Gevels", era="1500–1800", era_nl="1500–1800",
     text=("An old town house shows its age in its top. Stepped gables belong to the late Middle Ages and the early "
           "1600s, neck gables to the middle of that century, bell gables to the decades around 1700, and the flat "
@@ -200,7 +203,7 @@ STYLES = [
 
 
 @layer(
-    id="styles", section="Architecture", section_nl="Architectuur",
+    scope="city", id="styles", section="Architecture", section_nl="Architectuur",
     title="Architecture styles", title_nl="Bouwstijlen", era="1800–1940", era_nl="1800–1940",
     text=(f"From the sober classicism around 1800, through the revival styles and the villa parks of the railway era, "
           f"to the brick expressionism and the Nieuwe Bouwen between the wars: {LABEL} tried on the styles of its time."),
@@ -286,3 +289,63 @@ def townscapes():
 )
 def heritage():
     return {p: "Rijksmonument" for m in monuments() for p in m["panden"]}
+
+
+# ---------- a theme's facets ----------
+# A theme (cities/<theme>.json "theme") sorts its monuments by the facets of its config: for mills the type of mill
+# and what it did. A monument's facet comes from the terms it is registered with and what Wikidata calls it, else
+# from the first of the facet's words in the register's description. Each monument carries its register line as its
+# story, so a walk can string the mills of a polder together.
+
+def theme_facet(facet: dict):
+    groups = [(k, en, nl, re.compile(rf"\b({pat})", re.I)) for k, en, nl, _term, pat in facet["groups"]]
+    tpath, kpath = Path(f"{DATA}/raw/theme/terms.json"), Path(f"{DATA}/raw/wd_kinds.json")
+    terms = json.load(open(tpath, encoding="utf-8")) if tpath.exists() else {}
+    kinds = json.load(open(kpath, encoding="utf-8")) if kpath.exists() else {}
+
+    # the facet's fallback group (a broad kind, like 'bovenkruier') counts only when no other group is found
+    rest = facet.get("fallback")
+
+    def group_of(m) -> str | None:
+        known = " ".join([terms.get(u, "") for u in m.get("terms", [])] + kinds.get(m["nr"], []) + [m.get("type") or ""])
+        txt = (m.get("txt") or "")[:600]
+        for among in ([g for g in groups if g[0] != rest], [g for g in groups if g[0] == rest]):
+            for k, _, _, rx in among:
+                if rx.search(known):
+                    return k
+            hits = [(h.start(), k) for k, _, _, rx in among for h in [rx.search(txt)] if h]
+            if hits:
+                return min(hits)[1]
+        return None
+
+    # only the groups the province has: a layer colours MAX_GROUPS of them at most (web/app.js)
+    if Path(f"{RAW}/monuments.json").exists():
+        used = {group_of(m) for m in monuments()}
+        groups = [g for g in groups if g[0] in used]
+
+    def fn():
+        out = {}
+        for m in monuments():
+            k = group_of(m)
+            if not k:
+                continue
+            url = m.get("cho") or f"https://monumentenregister.cultureelerfgoed.nl/monumenten/{m['nr']}"
+            name = m.get("name") or f"{dict((g[0], g[2]) for g in groups)[k]}, {m.get('place') or ''}".rstrip(", ")
+            for q in m["panden"]:
+                out[q] = (k, story(name, m.get("txt"), url)) if m.get("txt") else k
+        return out
+
+    LAYERS.insert(0, dict(id=f"theme-{facet['id']}", section="Architecture", section_nl="Architectuur",
+                          title=facet["title"], title_nl=facet["title_nl"], era="All periods", era_nl="Alle perioden",
+                          text=f"The {THEME['noun'][1]} of {LABEL}, by {facet['title'].lower()}.",
+                          text_nl=f"De {THEME['noun'][3]} in {LABEL.split(' in ')[-1]}, naar {facet['title_nl'].lower()}.",
+                          caveat=("From the terms they are registered with and what Wikidata calls them, else from the "
+                                  "register's description."),
+                          caveat_nl=("Uit de begrippen in het register en wat Wikidata ze noemt, anders uit de omschrijving "
+                                     "in het register."),
+                          source=REGISTER, groups=[(k, en, nl) for k, en, nl, _ in groups], source_fn=fn))
+
+
+if THEME:
+    for _facet in reversed(THEME["facets"]):
+        theme_facet(_facet)

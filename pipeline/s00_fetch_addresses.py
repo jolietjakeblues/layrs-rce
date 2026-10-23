@@ -14,7 +14,7 @@ from pathlib import Path
 
 import requests
 
-from .city import DATA, GEMEENTE_CODE, UA, bounds
+from .city import DATA, GEMEENTE_CODE, UA, cells as grid
 
 WFS = "https://service.pdok.nl/lv/bag/wfs/v2_0"
 ADRES = "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/adres/items"
@@ -42,7 +42,7 @@ def vbo_cell(x, y):
                        "outputFormat": "application/json", "count": PAGE, "startIndex": start,
                        "bbox": f"{x},{y},{x + CELL},{y + CELL}"})["features"]
         out += [[f["properties"]["identificatie"], f["properties"]["pandidentificatie"]] for f in fs
-                if f["properties"]["identificatie"].startswith(GEMEENTE_CODE)]
+                if not GEMEENTE_CODE or f["properties"]["identificatie"].startswith(GEMEENTE_CODE)]
         if len(fs) < PAGE:
             return out
         start += PAGE
@@ -51,7 +51,7 @@ def vbo_cell(x, y):
 def adres_cell(x, y):
     out = []
     d = get(ADRES, {"f": "json", "limit": PAGE, "bbox": f"{x},{y},{x + CELL},{y + CELL}", "bbox-crs": RD,
-                    "bronhouder_identificatie": GEMEENTE_CODE})
+                    **({"bronhouder_identificatie": GEMEENTE_CODE} if GEMEENTE_CODE else {})})
     while True:
         out += [f["properties"] for f in d["features"]
                 if f["properties"]["adresseerbaar_object_type"] == "Verblijfsobject"]
@@ -62,8 +62,7 @@ def adres_cell(x, y):
 
 
 def main():
-    x0, y0, x1, y1 = bounds(CELL)
-    cells = [(x, y) for x in range(x0, x1, CELL) for y in range(y0, y1, CELL)]
+    cells = grid(CELL)
     if not VBO.exists():
         with ThreadPoolExecutor(6) as ex:
             pand = dict(p for part in ex.map(lambda c: vbo_cell(*c), cells) for p in part)

@@ -19,7 +19,7 @@ from pathlib import Path
 import geopandas as gpd
 import pandas as pd
 
-from .city import DATA, WEB
+from .city import DATA, THEME, WEB
 from .s03_tiles import ORIGIN
 
 STYLE_MIN = 3
@@ -98,12 +98,33 @@ def main():
                     f"Het monumentenregister noemt {who} als {nl}.", ldv(a["nr"])))
     for aid, n in nodes.items():
         top = roles_of[aid].most_common(1)[0][0]
-        n["type"] = "organisation" if top == "client" else "architect"
+        n["type"] = "organisation" if top == "client" and not THEME else "architect"
         n["desc"] = ", ".join(r for r, _ in roles_of[aid].most_common())
         n.pop("roles_nl")
 
+    # A theme's facets (layers.theme_facet) take the place of the styles: the types of mill and what they did,
+    # each a term of the Referentienetwerk, linked to the monuments the layer sorts under it.
+    if THEME:
+        from .layers import LAYERS
+        terms = json.load(open(f"{DATA}/raw/theme/terms.json", encoding="utf-8"))
+        uri_of = {label.lower(): u for u, label in terms.items()}
+        nr_of = {q: nr for nr, qs in bags_of.items() for q in qs}
+        for facet, kind in zip(THEME["facets"], ("event", "organisation")):
+            L = next(L for L in LAYERS if L["id"] == f"theme-{facet['id']}")
+            got = defaultdict(set)
+            for q, v in L["source_fn"]().items():
+                if q in nr_of:
+                    got[v[0] if isinstance(v, tuple) else v].add(nr_of[q])
+            for k, en, nl, term, _ in facet["groups"]:
+                if not got.get(k):
+                    continue
+                fid = f"facet:{facet['id']}:{k}"
+                nodes[fid] = dict(id=fid, type=kind, label=en, label_nl=nl, desc=facet["title_nl"].lower(),
+                                  url=uri_of.get(term.lower()))
+                raw += [(fid, nr, f"{facet['title']}: {en}.", f"{facet['title_nl']}: {nl}.", ldv(nr)) for nr in got[k]]
+
     styles = defaultdict(set)
-    for r in json.load(open(f"{DATA}/raw/layers/rce_styles.json", encoding="utf-8")):
+    for r in json.load(open(f"{DATA}/raw/layers/rce_styles.json", encoding="utf-8")) if not THEME else []:
         if bags_of.get(r["nr"]):
             styles[r["style"]].add(r["nr"])
     for style, nrs in styles.items():
@@ -174,10 +195,14 @@ def main():
         lo, hi = min(span[n["id"]]), max(span[n["id"]])
         n["years"] = str(lo) if lo == hi else f"{lo}–{hi}"
 
+    types = TYPES if not THEME else [
+        dict(key="event", en="Types of mill", nl="Bouwtypen"), dict(key="organisation", en="What they did", nl="Functies"),
+        dict(key="person", en="Complexes", nl="Complexen"), dict(key="architect", en="Makers and clients", nl="Makers en opdrachtgevers"),
+        dict(key="place", en="Mills", nl="Molens")]
     out = dict(
-        types=TYPES,
-        intro=dict(title="Makers, clients, complexes and styles of the monuments",
-                   title_nl="Makers, opdrachtgevers, complexen en stijlen van de monumenten",
+        types=types,
+        intro=dict(title="Makers, clients, complexes and styles of the monuments" if not THEME else "Types of mill, what they did, complexes",
+                   title_nl="Makers, opdrachtgevers, complexen en stijlen van de monumenten" if not THEME else "Bouwtypen, functies en complexen van de molens",
                    lede=("Every line is an entry in the national monument register or on Wikidata. Pick one or more points, "
                          "then open them on the map."),
                    lede_nl=("Elke lijn is een vermelding in het rijksmonumentenregister of op Wikidata. Kies een of meer "
