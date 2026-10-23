@@ -12,6 +12,7 @@ A part with height -1 is a LoD 2.2 roof face: its vertices carry their own y, an
 from the open edges of a building's roof faces (s01c_roofs). Other parts are LoD 1.3 prisms of their height.
 """
 import json
+import re
 import struct
 from pathlib import Path
 
@@ -22,7 +23,7 @@ import shapely
 
 from .s02_attributes import clean_parts
 from .periods import LABELS_NL, PERIODS
-from .city import CFG, CITY, DATA, LABEL, ORIGIN, WEB
+from .city import CFG, CITY, DATA, LABEL, ORIGIN, THEME, WEB
 
 TILE = 600.0
 SIMPLIFY = 0.25
@@ -94,7 +95,8 @@ def pack_tile(origin, rows):
 def main():
     b = gpd.read_parquet(f"{DATA}/buildings.parquet")
     b = b.merge(pd.read_parquet(f"{DATA}/layers.parquet"), on="identificatie", how="left")
-    labels = json.load(open(f"{DATA}/raw/energy.json"))
+    energy = Path(f"{DATA}/raw/energy.json")  # a theme skips the energy labels
+    labels = json.load(open(energy)) if energy.exists() else {}
     b["energy"] = b.identificatie.str.slice(-16).map(lambda k: ENERGY.index(labels[k]) + 1 if labels.get(k) in ENERGY else 0)
     q = clean_parts(gpd.read_parquet(f"{DATA}/parts.parquet"))
     gid = {k: i for i, k in enumerate(b.identificatie)}
@@ -198,6 +200,9 @@ def main():
                    monument=int((b.date_flag == 3).sum()), monumentApprox=int((b.date_flag == 4).sum()),
                    floorsBag3d=int((b.floors_src == 0).sum()), floorsHeight=int((b.floors_src == 1).sum())),
     )
+    if THEME:
+        config["theme"] = dict(noun=THEME["noun"], credit=THEME["credit"], radius=THEME["radius"],
+                               markers=theme_markers(b, gid, cen), map=province_map())
     (OUT / "city.json").write_text(json.dumps(config, ensure_ascii=False, separators=(",", ":")).replace('"from_"', '"from"'))
     # every city built so far, for a viewer opened without ?city=
     built = sorted(f.parent for f in OUT.parent.glob("*/city.json"))
@@ -206,6 +211,53 @@ def main():
         ensure_ascii=False), encoding="utf-8")
     total = sum(t["bytes"] for t in index)
     print(f"{len(index)} tiles, {total/1e6:.1f} MB, attrs {attrs.nbytes/1e6:.1f} MB")
+
+
+def province_map() -> dict:
+    """The province, its municipalities' borders and names, for a theme's overview from afar (s00_theme_select):
+    rings as flat [x, z, x, z, ...] lists in whole metres, names as [name, x, z]."""
+    def rings(path, tolerance):
+        g = gpd.read_file(path).set_crs(28992, allow_override=True)  # RD New, whatever the GeoJSON says
+        out = []
+        for geom in shapely.simplify(g.geometry.values, tolerance):
+            for poly in getattr(geom, "geoms", [geom]):
+                out.append(np.round(to_local(np.asarray(poly.exterior.coords)[:, :2])).astype(int).ravel().tolist())
+        return g, out
+    _, province = rings(f"{DATA}/raw/theme/provincie.json", 60)
+    g, borders = rings(f"{DATA}/raw/theme/gemeenten.json", 60)
+    pts = to_local(np.c_[[p.x for p in g.representative_point()], [p.y for p in g.representative_point()]])
+    names = [[n, round(float(x)), round(float(z))] for n, (x, z) in zip(g.naam, pts)]
+    return dict(province=province, borders=borders, names=names)
+
+
+# Houses and sheds a theme selects with its monuments (a miller's house, a shed for the sails): no sails on those.
+NOT_A_MILL = re.compile(r"molenaarshuis|molenaarswoning|roedenloods|molengang|woning|schuur", re.I)
+
+
+def theme_markers(b, gid, cen) -> list:
+    """A theme's monuments, for the overview: [x, z, gid, height, name, nr, build facet, wind] each. From afar every
+    one shows as a marker; close up, a windmill gets a cross of sails (an illustration: no model has them)."""
+    from .layers import LAYERS
+    mons = json.load(open(f"{DATA}/raw/layers/monuments.json", encoding="utf-8"))
+    terms = json.load(open(f"{DATA}/raw/theme/terms.json", encoding="utf-8"))
+    facet = {}
+    for L in LAYERS:
+        if L["id"] == "theme-build":
+            facet = {q: (v[0] if isinstance(v, tuple) else v) for q, v in L["source_fn"]().items()}
+    row = {k: i for i, k in enumerate(b.identificatie.str.slice(-16))}
+    out = []
+    for m in mons:
+        rows = [row[q] for q in m["panden"] if q in row]
+        if not rows:
+            continue
+        top = max(rows, key=lambda r: b.height.iat[r])
+        q = b.identificatie.iat[top][-16:]
+        build = facet.get(q)
+        what = " ".join([terms.get(u, "") for u in m.get("terms", [])] + [m.get("function") or "", m.get("type") or ""])
+        wind = build != "water" and not (build is None and NOT_A_MILL.search(what))
+        out.append([round(float(np.mean(cen[rows, 0])), 1), round(float(np.mean(cen[rows, 1])), 1), int(gid[b.identificatie.iat[top]]),
+                    round(float(b.height.iat[top]), 1), m.get("name") or "", m["nr"], build, bool(wind)])
+    return out
 
 
 if __name__ == "__main__":

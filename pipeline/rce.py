@@ -72,22 +72,27 @@ def name_from_text(txt: str) -> str | None:
     return None
 
 
-def monument(nr, name=None, function=None, styles=(), years=None, txt=None, vbos=(), panden=(), complex=None, cho=None):
+def monument(nr, name=None, function=None, styles=(), years=None, txt=None, vbos=(), panden=(), complex=None, cho=None,
+             **more):
     """One monument as the pipeline keeps it, whichever route it came by; cho is its URI in the linked data
     (https://linkeddata.cultureelerfgoed.nl/cho-kennis/id/rijksmonument/<cho number>, not the monument number)."""
     return dict(nr=str(nr), status="Rijksmonument", name=name, function=function, styles=list(styles), years=years,
                 txt=txt, vbos=sorted(set(vbos)), panden=sorted(set(panden)), address=None, architect=None,
-                complex=complex, cho=cho)
+                complex=complex, cho=cho, **more)
 
 
 # ---------- Elastic ----------
 
-def from_elastic(gemeente: str, ua: dict) -> list[dict]:
-    """Every rijksmonument of a municipality from the Erfgoed-ceo projection, in one request."""
+WKT = "http://www opengis net/ont/geosparql#asWKT"
+
+def from_elastic(gemeente: str | None, ua: dict, select: dict | None = None) -> list[dict]:
+    """Every rijksmonument of a municipality from the Erfgoed-ceo projection, in one request; or, for a theme, every
+    one matching `select` (a bool query part, e.g. terms of the Referentienetwerk in a province). A theme's monuments
+    carry their place, their outline or point (wkt, WGS84) and the terms they were selected by."""
+    where = [{"term": {F + "gemeente.keyword": gemeente}}] if gemeente else []
     body = {"size": 10000, "track_total_hits": True, "query": {"bool": {"filter": [
         {"term": {"@id.soort": "rijksmonument"}},
-        {"term": {F + "gemeente.keyword": gemeente}},
-        {"term": {F + "juridischeStatus.keyword": "rijksmonument"}}]}}}
+        {"term": {F + "juridischeStatus.keyword": "rijksmonument"}}, *where], **(select or {})}}}
     r = requests.post(ELASTIC, json=body, headers=ua, timeout=120)
     r.raise_for_status()
     d = r.json()
@@ -104,7 +109,11 @@ def from_elastic(gemeente: str, ua: dict) -> list[dict]:
                             function=(get("oorspronkelijkeFunctie") or get("functie") or [None])[0],
                             styles=[s for s in get("stijl") if s != "n.v.t."], years=years, txt=" ".join((get("omschrijving") or [""])[0].split()),
                             vbos=get("verblijfsobjectIdentificatie"), complex=(get("isOnderdeelVanComplex") or [None])[0],
-                            cho=s["@id"]))
+                            cho=s["@id"], **(dict(place=(get("woonplaatsnaam") or get("gemeente") or [None])[0],
+                                                  gemeente=(get("gemeente") or [None])[0],
+                                                  wkt=(s.get(WKT) or [None])[0],
+                                                  terms=get("heeftFunctieNaam") + get("heeftTypeNaam"),
+                                                  type=(get("type") or [None])[0]) if select else {})))
     return out
 
 
@@ -173,9 +182,23 @@ def in_municipality(gemeente: str) -> str:
      ceo:heeftJuridischeStatus <{RIJKSMONUMENT}> ."""
 
 
-def bag_links(gemeente: str, ua: dict) -> dict[str, tuple[set, set]]:
+def of_numbers(nrs: list[str]) -> str:
+    """Graph pattern binding ?m and ?nr to these monuments (for a theme, which spans municipalities)."""
+    return f"""VALUES ?nr {{ {" ".join(f'"{n}"' for n in nrs)} }} ?m ceo:rijksmonumentnummer ?nr ."""
+
+
+def bag_links(gemeente: str | None, ua: dict, nrs: list[str] | None = None) -> dict[str, tuple[set, set]]:
     """{monument nr: (panden, verblijfsobjecten)}, the 16-digit BAG ids the register links the monument to."""
-    rows = select(f"""SELECT DISTINCT ?nr ?pand ?vbo WHERE {{ {in_municipality(gemeente)}
+    if nrs is not None:
+        out = {}
+        for i in range(0, len(nrs), 200):
+            out.update(_bag_links(of_numbers(nrs[i:i + 200]), ua))
+        return out
+    return _bag_links(in_municipality(gemeente), ua)
+
+
+def _bag_links(pattern: str, ua: dict) -> dict[str, tuple[set, set]]:
+    rows = select(f"""SELECT DISTINCT ?nr ?pand ?vbo WHERE {{ {pattern}
   ?m ceo:heeftBasisregistratieRelatie/ceo:heeftBAGRelatie ?bag .
   OPTIONAL {{ ?bag ceo:heeftPand ?pand }} OPTIONAL {{ ?bag ceo:heeftVerblijfsobject ?vbo }} }}""", ua)
     out = {}
@@ -206,13 +229,19 @@ def from_sparql(gemeente: str, ua: dict) -> list[dict]:
                      txt=" ".join(texts.get(nr, "").split()), cho=uri) for nr, uri in cho.items()]
 
 
-def actors(gemeente: str, ua: dict) -> list[dict]:
+def actors(gemeente: str | None, ua: dict, nrs: list[str] | None = None) -> list[dict]:
     """Who made each monument, with their role: architect, garden architect, sculptor, client (opdrachtgever), ...
 
     ceo:heeftGebeurtenis / ceo:heeftActorEnRol pairs an actor (a term with a label such as 'Kroes, H. ; Stad
     Amersfoort') with a role. The Elastic projection flattens the two into separate lists, so this comes by SPARQL.
     """
-    rows = select(f"""SELECT DISTINCT ?nr ?actor (STR(?al) AS ?name) (STR(?rl) AS ?role) WHERE {{ {in_municipality(gemeente)}
+    if nrs is not None:
+        return [a for i in range(0, len(nrs), 200) for a in _actors(of_numbers(nrs[i:i + 200]), ua)]
+    return _actors(in_municipality(gemeente), ua)
+
+
+def _actors(pattern: str, ua: dict) -> list[dict]:
+    rows = select(f"""SELECT DISTINCT ?nr ?actor (STR(?al) AS ?name) (STR(?rl) AS ?role) WHERE {{ {pattern}
   ?m ceo:heeftGebeurtenis/ceo:heeftActorEnRol ?ar .
   ?ar ceo:heeftActor ?actor . FILTER(isIRI(?actor))
   ?actor skos:prefLabel ?al .

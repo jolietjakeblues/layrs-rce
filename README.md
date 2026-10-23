@@ -60,6 +60,19 @@ Copy a file in `cities/`, set `label`, `gemeentecode` (the four digits BAG ids s
 `starts`, `home`, `periods` and `tier1`, and run the pipeline with its name. The register's name for the municipality
 is `label`, or `gemeentenaam` when it differs. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## A theme instead of a city
+
+A config with a `theme` (see [`cities/molens-zh.json`](cities/molens-zh.json)) follows one kind of monument across a
+province: every rijksmonument whose function or type is a term in a subtree of the Referentienetwerk (exported as TriG,
+`theme.terms_zip`), each in a disc of `theme.radius` metres of its surroundings. `s00_theme_select` takes the place of
+the boundary and RCE steps, `s01b_theme_panden` puts the monuments on their panden, and `theme.facets` become layers
+(for mills: type of mill, what it did), classified from the register's terms, Wikidata and the description. From afar
+the viewer shows a marker per monument on a map of the province and its municipalities; close up, a windmill gets a
+turning cross of sails, an illustration.
+
+The mills link to [Allemolens.nl](https://www.allemolens.nl/) of the Vereniging De Hollandsche Molen, credited and
+thanked on every card and in About. Their texts and images are their own and are not copied.
+
 ## Data decisions
 
 - **Years.** BAG gives every building a construction year but not always a true one: placeholders (1005) are estimated

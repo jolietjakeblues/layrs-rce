@@ -34,7 +34,7 @@ def main():
     for m in mons:
         c = cx.get(m.get("complex"))
         shards[int(m["nr"]) % SHARDS][m["nr"]] = dict(
-            name=m.get("name"), text=cut(m.get("txt")),
+            name=m.get("name"), text=cut(m.get("txt")), place=m.get("place"),
             url=f"https://monumentenregister.cultureelerfgoed.nl/monumenten/{m['nr']}", cho=m.get("cho"),
             complex=dict(name=c["name"], url=c["url"], cho=c["id"]) if c else None,
             photos=photos.get(m["nr"], []))

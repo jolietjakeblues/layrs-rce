@@ -17,7 +17,10 @@ CFG = json.loads((Path(__file__).parent.parent / "cities" / f"{CITY}.json").read
 DATA = f"data/{CITY}"
 WEB = f"web/data/{CITY}"
 LABEL = CFG["label"]
-GEMEENTE_CODE = CFG["gemeentecode"]   # four digits, as BAG ids start: Amersfoort 0307, Maastricht 0935
+GEMEENTE_CODE = CFG.get("gemeentecode")  # four digits, as BAG ids start: Amersfoort 0307, Maastricht 0935
+# A theme instead of a city (cities/molens-zh.json): one kind of monument across a province, each in its surroundings.
+# Its selection (s00_theme_select) takes the place of the municipality; there is no gemeentecode.
+THEME = CFG.get("theme")
 ORIGIN = tuple(CFG["origin"])         # RD New; the viewer's (0, 0), the centre of the old town
 UA = {"User-Agent": f"layrs-{CITY}/0.1 (https://layrs-{CITY}.pages.dev)"}
 
@@ -33,3 +36,13 @@ def bounds(cell: int = 1000) -> tuple[int, int, int, int]:
     x0, y0, x1, y1 = gpd.read_file(f"{DATA}/raw/boundary.json").total_bounds
     return (math.floor(x0 / cell) * cell, math.floor(y0 / cell) * cell,
             math.ceil(x1 / cell) * cell, math.ceil(y1 / cell) * cell)
+
+
+def cells(cell: int = 1000) -> list[tuple[int, int]]:
+    """Lower-left corners of the cells of a grid over the bounds that touch the boundary: the whole municipality for a
+    city, only the discs around its monuments for a theme (s00_theme_select)."""
+    import geopandas as gpd
+    from shapely.geometry import box
+    x0, y0, x1, y1 = bounds(cell)
+    area = gpd.read_file(f"{DATA}/raw/boundary.json").union_all()
+    return [(x, y) for x in range(x0, x1, cell) for y in range(y0, y1, cell) if area.intersects(box(x, y, x + cell, y + cell))]

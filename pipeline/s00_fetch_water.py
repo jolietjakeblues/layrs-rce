@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import requests
-from .city import DATA, bounds
+from .city import DATA, cells as grid
 
 API = "https://api.pdok.nl/lv/bgt/ogc/v1/collections/{c}/items"
 RD = "http://www.opengis.net/def/crs/EPSG/0/28992"
@@ -26,8 +26,7 @@ def fetch_cell(collection, x, y):
 
 
 def fetch(collection):
-    x0, y0, x1, y1 = bounds(CELL)
-    cells = [(x, y) for x in range(x0, x1, CELL) for y in range(y0, y1, CELL)]
+    cells = grid(CELL)
     with ThreadPoolExecutor(8) as ex:
         parts = list(ex.map(lambda c: fetch_cell(collection, *c), cells))
     seen, feats = set(), []
