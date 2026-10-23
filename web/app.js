@@ -392,6 +392,8 @@ gzBtn.onclick = () => {
 const THEME = config.theme;
 const MARKER_FAR = 2500;        // metres of camera distance above which markers lead and buildings are too small
 let markerPts = null, freshPts = null, sails = [];
+let markerKey = '';  // what the shown markers were last worked out for (stepTheme)
+const periodIndex = y => Math.max(0, periods.findIndex(p => y >= p.from && y <= p.to));
 const placeNames = [];
 // the overview's markers, map and sails: drawn, but never picked as buildings (pick())
 const themeGroup = new THREE.Group();
@@ -454,7 +456,7 @@ if (THEME) {
     hub.position.set(m[0] - 3.5, Math.max(m[3] * 0.9, L + 1.5), m[1] + 3.5);
     hub.lookAt(m[0] - 30, hub.position.y, m[1] + 30);
     const cross = new THREE.Mesh(geo, sailMat);
-    hub.userData.year = m[8];
+    hub.userData.i = M.indexOf(m);
     cross.rotation.z = (m[2] % 7) * 0.4;
     hub.add(cross);
     themeGroup.add(hub);
@@ -526,7 +528,7 @@ function markerAt(x, y) {
   if (!THEME || camera.position.distanceTo(controls.target) < MARKER_FAR) return null;
   let best = null, bd = 14;
   for (const m of THEME.markers) {
-    if (m[8] > uniforms.uYear.value) break;  // not built yet; the markers are in the order they were built
+    if (!m[9]) continue;  // not built yet, or of a period not shown (stepTheme)
     markerScreen.set(m[0], m[3] + 6, m[1]).project(camera);
     const d = Math.hypot((markerScreen.x + 1) / 2 * innerWidth - x, (1 - markerScreen.y) / 2 * innerHeight - y);
     if (markerScreen.z < 1 && d < bd) { bd = d; best = m; }
@@ -537,17 +539,28 @@ function stepTheme(now, dist) {
   if (!THEME) return;
   markerPts.material.opacity = Math.max(0, Math.min(1, (dist - 900) / 1600));
   markerPts.visible = markerPts.material.opacity > 0;
-  // only the mills standing in the year shown; while playing, the ones built in the last moments get a ring
+  // Only the mills standing in the year shown and, like the buildings, in the periods picked in the legend; while
+  // playing, the ones built in the last moments get a ring.
   const M = THEME.markers, Y = uniforms.uYear.value;
+  const masked = uniforms.uMode.value === MODE.period;
   let built = 0;
   while (built < M.length && M[built][8] <= Y) built++;
-  markerPts.geometry.setDrawRange(0, built);
   let fresh = built;
   while (playing && fresh > 0 && M[fresh - 1][8] > Y - uniforms.uRise.value * 2) fresh--;
-  freshPts.geometry.setDrawRange(fresh, built - fresh);
-  freshPts.visible = markerPts.visible && built > fresh;
+  const key = `${built} ${fresh} ${masked ? maskTarget.join('') : ''}`;
+  if (key !== markerKey) {
+    markerKey = key;
+    const all = [], recent = [];
+    M.forEach((m, i) => {
+      m[9] = i < built && (!masked || !!maskTarget[periodIndex(m[8])]);
+      if (m[9]) (i >= fresh ? recent : all).push(i);
+    });
+    markerPts.geometry.setIndex([...all, ...recent]);
+    freshPts.geometry.setIndex(recent);
+    for (const s of sails) s.parent.visible = M[s.parent.userData.i][9];
+  }
+  freshPts.visible = markerPts.visible && freshPts.geometry.index.count > 0;
   freshPts.material.opacity = markerPts.material.opacity;
-  for (const s of sails) s.parent.visible = s.parent.userData.year <= Y;
   const names = Math.max(0, Math.min(1, (dist - 12000) / 8000));
   for (const s of placeNames) { s.material.opacity = names; s.visible = names > 0; }
   const spin = now / 1000 * 0.9;
