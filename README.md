@@ -8,6 +8,8 @@ history, from national open data only. Or one kind of monument across a province
 - Dordrecht: https://layrs-dordrecht.pages.dev
 - Mills in Zuid-Holland: https://layrs-molens-zh.pages.dev (a theme, see below)
 
+- Zie ook de Gouda versie van @coret https://www.goudatijdmachine.nl/layrs/
+
 A non-commercial test. It grew out of Alex Barakov's
 [Amsterdam, building by building](https://github.com/alexbarakov/amsterdam-by-building) (MIT), itself inspired by
 Sasha Bogachev's [Paris, building by building](https://paris.bogachev.fr); the viewer and the tile format are his.
