@@ -2006,12 +2006,15 @@ const HIST = !THEME ? config.histogram : THEME.markers.reduce((h, m) => {
   (h[m[8]] ||= periods.map(() => 0))[periods.indexOf(periodOf(m[8]))]++;
   return h;
 }, {});
-// a layer group's buildings per year; in a theme only its monuments
+// a layer group's buildings per year, and how many buildings a layer or group holds; in a theme only its monuments
+const hasBit = (gid, bit) => (attrs.getUint32(gid * config.attrStride + (bit < 32 ? 20 : 24), true) >>> (bit % 32)) & 1;
 const groupYears = g => !THEME ? g.years : THEME.markers.reduce((h, m) => {
-  const w = attrs.getUint32(m[2] * config.attrStride + (g.bit < 32 ? 20 : 24), true);
-  if ((w >>> (g.bit % 32)) & 1) h[m[8]] = (h[m[8]] || 0) + 1;
+  if (hasBit(m[2], g.bit)) h[m[8]] = (h[m[8]] || 0) + 1;
   return h;
 }, {});
+const markersWith = bits => THEME.markers.filter(m => bits.some(b => hasBit(m[2], b))).length;
+const layerCount = L => THEME ? markersWith(L.groups.map(g => g.bit)) : L.count;
+const groupCount = g => THEME ? markersWith([g.bit]) : g.count;
 const totals = periods.map(() => 0);
 for (const v of Object.values(HIST)) v.forEach((n, i) => totals[i] += n);
 const fmt = n => n.toLocaleString(fmtLocale());
@@ -2051,10 +2054,14 @@ function renderPanel() {
       renderPanel(); drawHist();
     });
   } else if (mode === MODE.floors) {
+    // where the storeys come from, for every building or, in a theme, for its monuments
+    const [bag3d, byHeight] = THEME ? THEME.markers.reduce((a, m) => (a[attrs.getUint8(m[2] * config.attrStride + 10) ? 1 : 0]++, a), [0, 0])
+      : [config.stats.floorsBag3d, config.stats.floorsHeight];
+    const what = THEME ? THEME.noun[LANG === 'nl' ? 3 : 1] : LANG === 'nl' ? 'gebouwen' : 'buildings';
     panel.innerHTML = `<button class="back">${t('All layers')}</button><h2 class="layer-title">${sectionIcon('Buildings today')}${t('Storeys')}</h2>
       <div class="ramp" style="background:linear-gradient(90deg,#dbe3e6,#7da8bf,#2b5c8c,#0d1a40)"></div>
       <div class="ramp-scale"><span>1</span><span>3</span><span>8</span><span>20</span><span>40+</span></div>
-      <p class="note">${LANG === 'nl' ? `${fmt(config.stats.floorsBag3d)} gebouwen krijgen hun verdiepingen uit het 3D BAG-model; de rest, ${fmt(config.stats.floorsHeight)}, uit hun hoogte gedeeld door 3,2 m.` : `${fmt(config.stats.floorsBag3d)} buildings take their storeys from the 3D BAG model; the rest, ${fmt(config.stats.floorsHeight)}, from their height divided by 3.2 m.`}</p>`;
+      <p class="note">${LANG === 'nl' ? `${fmt(bag3d)} ${what} krijgen hun verdiepingen uit het 3D BAG-model; de rest, ${fmt(byHeight)}, uit hun hoogte gedeeld door 3,2 m.` : `${fmt(bag3d)} ${what} take their storeys from the 3D BAG model; the rest, ${fmt(byHeight)}, from their height divided by 3.2 m.`}</p>`;
     panel.querySelector('.back').onclick = backToLayers;
   } else if (mode === MODE.energy) {
     const e = config.energy;
@@ -2088,19 +2095,22 @@ function renderPanel() {
       flyTo(n.at[0], n.at[1], () => { const gid = gidOf(b.dataset.bag); if (gid >= 0) pinCard(gid, innerWidth * 0.62, innerHeight * 0.18); });
     });
   } else if (!activeLayer) {
-    const sections = [...new Set(contextLayers.map(L => L.section))].sort((a, b) => SECTION_ORDER.indexOf(a) - SECTION_ORDER.indexOf(b));
-    const secTitle = sec => tr(contextLayers.find(L => L.section === sec), 'section');
+    // a theme lists only the layers that hold some of its monuments
+    const listed = THEME ? contextLayers.filter(L => layerCount(L)) : contextLayers;
+    const sections = [...new Set(listed.map(L => L.section))].sort((a, b) => SECTION_ORDER.indexOf(a) - SECTION_ORDER.indexOf(b));
+    const secTitle = sec => tr(listed.find(L => L.section === sec), 'section');
     panel.innerHTML = `<nav class="jump" aria-label="${t('Layers')}">${sections.map(sec => `
       <button data-sec="${esc(sec)}" title="${esc(secTitle(sec))}" aria-label="${esc(secTitle(sec))}">${sectionIcon(sec)}</button>`).join('')}</nav>` +
-      sections.map(sec => `<h2 class="section" id="sec-${sec.replace(/\W+/g, '-')}">${sectionIcon(sec)}${esc(secTitle(sec))}</h2><div class="layers">${contextLayers.filter(L => L.section === sec).map(L => `
+      sections.map(sec => `<h2 class="section" id="sec-${sec.replace(/\W+/g, '-')}">${sectionIcon(sec)}${esc(secTitle(sec))}</h2><div class="layers">${listed.filter(L => L.section === sec).map(L => `
       <button class="layer" data-id="${L.id}">
-        <b>${esc(tr(L, 'title'))}</b><span class="n">${fmt(L.count)}</span><span class="era">${esc(tr(L, 'era'))}</span>
+        <b>${esc(tr(L, 'title'))}</b><span class="n">${fmt(layerCount(L))}</span><span class="era">${esc(tr(L, 'era'))}</span>
       </button>`).join('')}</div>`).join('');
     // The buildings as they are today: storeys and energy labels, first in the list.
-    const labelled = config.energy.counts.slice(1).reduce((a, b) => a + b, 0);
+    const labelled = THEME ? THEME.markers.filter(m => attrs.getUint8(m[2] * config.attrStride + 32)).length
+      : config.energy.counts.slice(1).reduce((a, b) => a + b, 0);
     panel.querySelector('.jump').insertAdjacentHTML('afterbegin', `<button data-sec="today" title="${t('Buildings today')}" aria-label="${t('Buildings today')}">${sectionIcon('Buildings today')}</button>`);
     panel.querySelector('.jump').insertAdjacentHTML('afterend', `<h2 class="section" id="sec-today">${sectionIcon('Buildings today')}${t('Buildings today')}</h2>
-      <div class="layers"><button class="layer view" data-view="floors"><b>${t('Storeys')}</b><span class="n">${fmt(config.stats.buildings)}</span><span class="era">${t('3D BAG')}</span></button>
+      <div class="layers"><button class="layer view" data-view="floors"><b>${t('Storeys')}</b><span class="n">${fmt(THEME ? THEME.markers.length : config.stats.buildings)}</span><span class="era">${t('3D BAG')}</span></button>
       ${labelled ? `<button class="layer view" data-view="energy"><b>${t('Energy label')}</b><span class="n">${fmt(labelled)}</span><span class="era">${t('RVO')}</span></button>` : ''}</div>`);
     panel.querySelectorAll('.layer.view').forEach(b => b.onclick = () => setBuildingView(MODE[b.dataset.view]));
     panel.querySelectorAll('.jump button').forEach(b => b.onclick = () =>
@@ -2133,7 +2143,7 @@ function renderPanel() {
 function layerDetail(L) {
   const groups = L.groups.length > 1 ? `<div class="swatches">${L.groups.map((g, i) => `
     <button class="swatch" data-bit="${g.bit}" aria-pressed="${groupOn[g.bit] !== false}">
-      <i style="background:${GROUP_COLORS[i]}"></i><span>${esc(tr(g, 'label'))}</span><span class="n">${fmt(g.count)}</span>
+      <i style="background:${GROUP_COLORS[i]}"></i><span>${esc(tr(g, 'label'))}</span><span class="n">${fmt(groupCount(g))}</span>
     </button>`).join('')}</div>` : '';
   // One line per story: a building made of several BAG parts carries the same note on each.
   const seenName = new Set();
