@@ -11,6 +11,17 @@ python -m http.server 8642 --directory web    # http://localhost:8642/?city=<nam
 
 The periods are the city's own growth phases, not decades: ten at most, each with a colour from the shared palette.
 
+## A theme
+
+A theme follows one kind of monument across a province instead of a city (see the README). Export the kind's subtree
+of the Referentienetwerk from PoolParty as TriG in a zip, copy `cities/molens-zh.json` and set `label`, `origin`,
+`starts`, `home` (span the province), `periods` and the `theme`: the zip, the province as the register spells it, the
+radius around each monument, its noun, who to credit and thank, and the facets with their groups as
+`[key, English, Dutch, RN2 term label, regular expression]`. Run the pipeline with its name, as for a city.
+
+When the theme leans on another source for what it says about each monument, link to it and thank it on every card
+and in About, as the mills do with Allemolens.nl; never copy its texts or images.
+
 ## A layer
 
 A context layer lights up a set of buildings that share a piece of history. Add a function to

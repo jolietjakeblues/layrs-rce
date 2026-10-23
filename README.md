@@ -1,11 +1,12 @@
 # LAYRS: a Dutch city, building by building
 
 Every building standing in a Dutch municipality today, in 3D, coloured by the year it was built and set in its
-history, from national open data only. Live:
+history, from national open data only. Or one kind of monument across a province, each in its surroundings. Live:
 
-- Amersfoort: https://layrs-amersfoort.pages.dev
+- Amersfoort: https://layrs-amersfoort.pages.dev (with an archaeology mode)
 - Maastricht: https://layrs-maastricht.pages.dev
 - Dordrecht: https://layrs-dordrecht.pages.dev
+- Mills in Zuid-Holland: https://layrs-molens-zh.pages.dev (a theme, see below)
 
 A non-commercial test. It grew out of Alex Barakov's
 [Amsterdam, building by building](https://github.com/alexbarakov/amsterdam-by-building) (MIT), itself inspired by
@@ -24,12 +25,14 @@ main streets to label from afar, and the pipeline steps. The pipeline reads and 
 | Step | Source | What it gives |
 |---|---|---|
 | `s00_fetch_boundary` | PDOK Bestuurlijke Gebieden | the municipality's outline |
+| `s00_theme_select` (a theme only) | Referentienetwerk subtree, RCE Elastic projection, PDOK Bestuurlijke Gebieden | the theme's monuments in the province, a disc around each as its 'municipality', the province and its municipalities for the overview |
 | `s00_fetch_3dbag`, `s00_fetch_3dbv` | 3D BAG (TU Delft), or else Kadaster's 3D Basisvoorziening | buildings, heights, years; the fallback has no roof shapes |
 | `s00_fetch_water`, `s00_fetch_addresses` | BGT and BAG via PDOK | water, every address with its building |
 | `s00_fetch_energy` | RVO via RIVM Atlas Leefomgeving | energy labels |
 | `s00_fetch_rce` ([`rce.py`](pipeline/rce.py)) | RCE monument register: its Elastic projection ([elastic-ceo](https://github.com/jolietjakeblues/elastic-ceo)), then SPARQL | monuments on their BAG panden, descriptions, styles, building years, makers and clients, complexes, photos from the RCE image bank, protected townscapes |
 | `s00_fetch_wikidata` | Wikidata | names, articles, photos and architects, by BAG pand id and by monument number |
 | `s01_load`, `s02_attributes` | | buildings and parts; years cleaned: placeholders, rounded years, the register's earlier dates |
+| `s01b_theme_panden` (a theme only) | | each monument on its BAG panden: the register's links, else the pand under or nearest its point |
 | `s01c_roofs`, `s01d_spires` | 3D BAG LoD 2.2, AHN | roofs, towers and spires (3D BAG only) |
 | `s05_layers` ([`layers.py`](pipeline/layers.py)) | | the context layers: monuments by function (each with a line from the register, the stops of a walk), gables, styles, complexes, protected townscapes, protected heritage |
 | `s07_labels` | Nationaal Wegenbestand | street names along their streets |
@@ -54,6 +57,9 @@ python -m http.server 8642 --directory web        # http://localhost:8642/?city=
 Raw downloads (`data/`), generated output (`web/data/`) and built sites (`dist/`) are not in the repository: they are
 large and rebuilt by the pipeline.
 
+In the viewer: drag to turn, right-drag or Shift-drag to move, scroll or the buttons on the right to zoom; the
+bottom button of those three flies back to the overview the map opens on. The timeline plays the city's growth.
+
 ## Another city
 
 Copy a file in `cities/`, set `label`, `gemeentecode` (the four digits BAG ids start with), `origin` (RD New),
@@ -66,9 +72,20 @@ A config with a `theme` (see [`cities/molens-zh.json`](cities/molens-zh.json)) f
 province: every rijksmonument whose function or type is a term in a subtree of the Referentienetwerk (exported as TriG,
 `theme.terms_zip`), each in a disc of `theme.radius` metres of its surroundings. `s00_theme_select` takes the place of
 the boundary and RCE steps, `s01b_theme_panden` puts the monuments on their panden, and `theme.facets` become layers
-(for mills: type of mill, what it did), classified from the register's terms, Wikidata and the description. From afar
-the viewer shows a marker per monument on a map of the province and its municipalities; close up, a windmill gets a
-turning cross of sails, an illustration.
+(for mills: type of mill, what it did), classified from the register's terms, Wikidata and the description; a group
+no monument falls in is left out, as a layer colours eight groups at most.
+
+The viewer counts the theme's monuments, not the buildings around them: the legend per period, the counter by the
+year and the timeline are about the mills. From afar every monument is a marker on a map of the province and its
+municipalities (Bestuurlijke Gebieden). The markers follow the map as the buildings do: the year shown, the periods
+picked in the legend, the colours of the layer shown. Playing the timeline, each mill appears in the year it was built
+with a ring around it; the film gives every mill the same time. Close up, a windmill gets a turning cross of sails, an
+illustration: no 3D model of the buildings has sails.
+
+```bash
+python -m pipeline.run molens-zh                  # http://localhost:8642/?city=molens-zh
+.\scripts\deploy.ps1 molens-zh
+```
 
 The mills link to [Allemolens.nl](https://www.allemolens.nl/) of the Vereniging De Hollandsche Molen, credited and
 thanked on every card and in About. Their texts and images are their own and are not copied.
