@@ -38,8 +38,9 @@ const CITY_Q = new URLSearchParams(location.search).get('city');
 const ARCHEO = new URLSearchParams(location.search).get('mode') === 'archeo';
 const withCity = u => { if (CITY_Q) u.searchParams.set('city', CITY_Q); if (ARCHEO) u.searchParams.set('mode', 'archeo'); return u; };
 Promise.resolve(CITY_Q || document.documentElement.dataset.city || fetch('data/cities.json').then(r => r.json()).then(c => c[0].city))
-  .then(CITY => Promise.all([fetch(`data/${CITY}/${ARCHEO ? 'archeo/' : ''}graph.json`).then(r => r.json()),
-    fetch(`data/${CITY}/city.json`).then(r => r.json())]))
+  .then(CITY => (CITY === document.documentElement.dataset.city && document.documentElement.dataset.dir) || CITY)
+  .then(DIR => Promise.all([fetch(`data/${DIR}/${ARCHEO ? 'archeo/' : ''}graph.json`).then(r => r.json()),
+    fetch(`data/${DIR}/city.json`).then(r => r.json())]))
   .then(([G, city]) => init(G, city));
 
 function init(G, city) {

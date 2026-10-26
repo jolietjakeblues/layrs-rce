@@ -221,6 +221,11 @@ body.archeo .veil { display: none; }
 .play { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--ink); color: var(--paper);
   cursor: pointer; margin-bottom: 24px; display: grid; place-items: center; flex: none; }
 .play svg { width: 16px; height: 16px; fill: currentColor; }
+/* Repeat: light grey while off, ink while the film plays back and forth; no hover colour, so off reads as off. */
+.repeat { width: 28px; height: 28px; margin: 0 0 32px -8px; padding: 0; border: 0; background: none; color: #9a9fa3;
+  cursor: pointer; display: grid; place-items: center; flex: none; }
+.repeat svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.repeat[aria-pressed="true"] { color: var(--ink); }
 
 .loading { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); color: var(--muted); }
 
@@ -257,6 +262,7 @@ body.archeo .veil { display: none; }
   .timeline { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
   .timeline canvas { height: 76px; }
   .play { width: 40px; height: 40px; margin-bottom: 18px; }
+  .repeat { margin-bottom: 24px; }
 }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

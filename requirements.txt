@@ -4,6 +4,7 @@ pyarrow
 scipy
 shapely
 pyproj
+rasterio
 pandas
 numpy
 requests

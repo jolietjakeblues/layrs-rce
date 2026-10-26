@@ -28,7 +28,7 @@ main streets to label from afar, and the pipeline steps. The pipeline reads and 
 |---|---|---|
 | `s00_fetch_boundary` | PDOK Bestuurlijke Gebieden | the municipality's outline |
 | `s00_theme_select` (a theme only) | Referentienetwerk subtree, RCE Elastic projection, PDOK Bestuurlijke Gebieden | the theme's monuments in the province, a disc around each as its 'municipality', the province and its municipalities for the overview |
-| `s00_fetch_3dbag`, `s00_fetch_3dbv` | 3D BAG (TU Delft), or else Kadaster's 3D Basisvoorziening | buildings, heights, years; the fallback has no roof shapes |
+| `s00_fetch_3dbag`, `s00_fetch_3dbv` | 3D BAG (TU Delft), or else Kadaster's 3D Basisvoorziening | buildings, heights, years; the fallback has no roof shapes. While `data.3dbag.nl` is down (since 2026-10-21) the same release is read as CityJSON from 3D BAG's object storage and rewritten into the GeoPackage layers the later steps read (after [@coret](https://github.com/gouda-tijdmachine/layrs-gtm)) |
 | `s00_fetch_water`, `s00_fetch_addresses` | BGT and BAG via PDOK | water, every address with its building |
 | `s00_fetch_energy` | RVO via RIVM Atlas Leefomgeving | energy labels |
 | `s00_fetch_rce` ([`rce.py`](pipeline/rce.py)) | RCE monument register: its Elastic projection ([elastic-ceo](https://github.com/jolietjakeblues/elastic-ceo)), then SPARQL | monuments on their BAG panden, descriptions, styles, building years, makers and clients, complexes, photos from the RCE image bank, protected townscapes |
@@ -59,8 +59,13 @@ python -m http.server 8642 --directory web        # http://localhost:8642/?city=
 Raw downloads (`data/`), generated output (`web/data/`) and built sites (`dist/`) are not in the repository: they are
 large and rebuilt by the pipeline.
 
+`scripts/build_site.py` gives every file a build can change a URL of its own, so a server may cache them for good: the
+data sits in `dist/<city>/data/<city>-<hash>/` (named on the pages as `data-dir`; its `_headers` entry caches it for a
+year), and the scripts and styles are linked with `?v=<hash>`. The vendored three.js modules keep plain URLs; after
+upgrading three.js, rename its folder.
+
 In the viewer: drag to turn, right-drag or Shift-drag to move, scroll or the buttons on the right to zoom; the
-bottom button of those three flies back to the overview the map opens on. The timeline plays the city's growth.
+bottom button of those three flies back to the overview the map opens on. The timeline plays the city's growth; with the repeat button on it runs back and forth, resting 10 s at either end.
 
 ## Another city
 

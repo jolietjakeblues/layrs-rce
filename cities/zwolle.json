@@ -1,0 +1,36 @@
+{
+  "label": "Zwolle",
+  "gemeentecode": "0193",
+  "origin": [202871.0, 502959.0],
+  "starts": [
+    ["Grote Markt", "Grote Markt", 202871.0, 502959.0],
+    ["Sint-Michaëlskerk", "Sint-Michaëlskerk", 202806.0, 502887.0],
+    ["Sassenpoort", "Sassenpoort", 202951.0, 502890.0],
+    ["Zwolle station", "Station Zwolle", 202765.0, 502319.0]
+  ],
+  "home": {"x": 0, "z": 300, "azimuth": 200, "elevation": 40, "span": 4200},
+  "roofs_within": 1100,
+  "suspect_years": [],
+  "periods": [
+    ["p1", "Before 1500 Medieval Hanseatic town", "Vóór 1500 Middeleeuwse Hanzestad", 1000, 1499, "#4a1410"],
+    ["p2", "1500–1649 Fortress town", "1500–1649 Vestingstad", 1500, 1649, "#8c1c13"],
+    ["p3", "1650–1799", "1650–1799", 1650, 1799, "#c0462b"],
+    ["p4", "1800–1869", "1800–1869", 1800, 1869, "#d97a2b"],
+    ["p5", "1870–1913 Beyond the canals", "1870–1913 Buiten de singels", 1870, 1913, "#e5b13a"],
+    ["p6", "1914–1940 Between the wars", "1914–1940 Interbellum", 1914, 1940, "#8e9f3c"],
+    ["p7", "1941–1964 Reconstruction", "1941–1964 Wederopbouw", 1941, 1964, "#3f8f6b"],
+    ["p8", "1965–1984 Holtenbroek, Aalanden", "1965–1984 Holtenbroek, Aalanden", 1965, 1984, "#2c7391"],
+    ["p9", "1985–2004 Zwolle-Zuid, Stadshagen", "1985–2004 Zwolle-Zuid, Stadshagen", 1985, 2004, "#3a4f9a"],
+    ["p10", "2005–today Stadshagen, Hanzeland", "2005–nu Stadshagen, Hanzeland", 2005, 2100, "#6a3f8f"]
+  ],
+  "tier1": ["Grote Markt", "Diezerstraat", "Voorstraat", "Melkmarkt", "Ossenmarkt", "Blijmarkt", "Sassenstraat",
+            "Praubstraat", "Thorbeckegracht", "Assendorperstraat", "Stationsplein", "Hanzelaan",
+            "Burgemeester Drijbersingel", "Willemsvaart", "Koestraat", "Roggenstraat", "Luttekestraat",
+            "Kamperstraat", "Kamperweg", "Hasselterweg", "Burgemeester van Roijensingel", "Veerallee",
+            "Zwartewaterallee", "Oosterlaan", "Katerdijk", "Parkweg", "Wilhelminasingel", "Stadshagenallee",
+            "Hertsenbergweg", "Bisschop Willebrandlaan", "Oldeneelallee", "Bagijnesingel"],
+  "steps": ["s00_fetch_boundary", "s00_fetch_3dbag", "s00_fetch_3dbv", "s00_fetch_water", "s00_fetch_addresses",
+            "s00_fetch_energy", "s00_fetch_rce", "s00_fetch_archeo", "s00_fetch_wikidata", "s01_load", "s02_attributes",
+            "s01c_roofs", "s01d_spires", "s05_layers", "s07_labels", "s10_commons", "s06_wiki", "s17_archeo", "s03_tiles",
+            "s04_water", "s13_graph", "s14_search", "s15_addresses", "s16_register"]
+}

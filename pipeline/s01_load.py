@@ -53,6 +53,15 @@ def main():
         p, q = from_3dbv(city)
     p = p[p.representative_point().within(city)]
     q = q[q.identificatie.isin(p.identificatie)].drop_duplicates(["identificatie", "b3_pand_deel_id", "b3_dd_id"])
+    # A pand the model gave no roof surface at LoD 1.3 (a failed reconstruction) still gets one part: its footprint, at
+    # the heights of the pand itself; s03_tiles needs a part for every building.
+    bare = p[~p.identificatie.isin(q.identificatie)]
+    if len(bare):
+        q = pd.concat([q, gpd.GeoDataFrame(dict(
+            identificatie=bare.identificatie, b3_pand_deel_id=0, b3_dd_id=0, b3_h_min=float("nan"),
+            b3_h_50p=bare.b3_h_dak_50p, b3_h_70p=bare.b3_h_dak_70p, b3_h_max=bare.b3_h_dak_max),
+            geometry=bare.geometry.values, crs=28992)])
+        print(len(bare), "panden without a LoD 1.3 roof: footprint part")
     p.to_parquet(f"{DATA}/panden.parquet"); q.to_parquet(f"{DATA}/parts.parquet")
     print(len(p), "panden;", len(q), "lod13 parts")
 
