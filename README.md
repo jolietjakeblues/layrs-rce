@@ -6,6 +6,7 @@ history, from national open data only. Or one kind of monument across a province
 - Amersfoort: https://layrs-amersfoort.pages.dev (with an archaeology mode)
 - Maastricht: https://layrs-maastricht.pages.dev
 - Dordrecht: https://layrs-dordrecht.pages.dev
+- Zwolle: https://layrs-zwolle.pages.dev (with an archaeology mode)
 - Mills in Zuid-Holland: https://layrs-molens-zh.pages.dev (a theme, see below)
 
 - Zie ook de Gouda versie van @coret https://www.goudatijdmachine.nl/layrs/
