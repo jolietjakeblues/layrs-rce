@@ -21,7 +21,9 @@ const ENERGY_COLORS = ['#efeee9', '#c1272d', '#e4572e', '#f08a24', '#f6c445', '#
 // s03_tiles); its files are in data/<city>/ (pipeline/city.py).
 const CITY = new URLSearchParams(location.search).get('city') || document.documentElement.dataset.city
   || (await fetch('data/cities.json').then(r => r.json()))[0].city;
-const D = `data/${CITY}/`;
+// A built site keeps its data in a folder named after its content (scripts/build_site.py, data-dir), so a browser never
+// mixes cached files of two builds
+const D = `data/${(CITY === document.documentElement.dataset.city && document.documentElement.dataset.dir) || CITY}/`;
 const [config, layers, attrBuf] = await Promise.all([
   fetch(D + 'city.json').then(r => r.json()),
   fetch(D + 'layers.json').then(r => r.json()),
@@ -893,7 +895,6 @@ function updateLabels(dist) {
 
 // ---------- Shared uniforms ----------
 const col = c => new THREE.Color(c);
-const FOCUS_MAX = 160;  // buildings a walk can light up at once
 const uniforms = {
   uYear: { value: config.yearMax },
   uYearFrom: { value: config.yearMin - 1 },
@@ -910,11 +911,11 @@ const uniforms = {
   uEnergy: { value: ENERGY_COLORS.map(col) },
   uHover: { value: -1 },
   uSelected: { value: -1 },
-  uFocus: { value: Array(FOCUS_MAX).fill(-1) },
-  uFocusGroup: { value: Array(FOCUS_MAX).fill(0) },
-  uFocusN: { value: 0 },
+  uFocusN: { value: 0 },                           // buildings lit by a walk or the graph (their groups are in uPick)
   uBlind: { value: 0 },
-  // Search: per building whether it is lit; while uPickOn is 1 the found buildings keep their colour and the rest dims.
+  // Per building: .x lit by the search (while uPickOn is 1 the found buildings keep their colour and the rest dims),
+  // .y its walk or graph group + 1 (0: not lit). A texture, not uniform arrays: phones such as Adreno allow only
+  // 256 vertex uniform vectors, and arrays of a building per element left the shader unlinked and the city empty.
   uPick: { value: null },
   uPickOn: { value: 0 },
   uFogColor: { value: col(SKY) },
@@ -938,8 +939,6 @@ const VERT = /* glsl */`
   uniform vec3 uGroupColor[${MAX_GROUPS}];
   uniform vec3 uMaquette;
   uniform vec3 uEnergy[13];
-  uniform float uFocus[${FOCUS_MAX}];
-  uniform int uFocusGroup[${FOCUS_MAX}];
   uniform int uFocusN;
   uniform sampler2D uPick;
   uniform float uPickOn;
@@ -1010,11 +1009,9 @@ const VERT = /* glsl */`
       }
     }
     if (uFocusN > 0) {
-      c = uMaquette;
-      for (int k = 0; k < ${FOCUS_MAX}; k++) {
-        if (k >= uFocusN) break;
-        if (abs(vGid - uFocus[k]) < 0.5) { c = uGroupColor[uFocusGroup[k]]; break; }
-      }
+      int gi = int(vGid + 0.5);
+      int fg = int(texelFetch(uPick, ivec2(gi % ${ATTR_W}, gi / ${ATTR_W}), 0).y * 255.0 + 0.5);
+      c = fg > 0 ? uGroupColor[fg - 1] : uMaquette;
     }
     if (year <= uYearFrom) c = mix(c, uMaquette, 0.8);
     // A quest's question about one building turns it red; a year riddle also hides every other age.
@@ -1716,10 +1713,8 @@ function discTexture(text, fill, ink) {
 // While a walk is shown the city is a plain model and only the walk's buildings carry colour (the graph's focus).
 function lightWalk(w) {
   if (!w) { uniforms.uFocusN.value = 0; return; }
-  const gids = [...new Set(w.stops.flatMap(p => p.bags.map(gidOf)))].filter(g => g >= 0).slice(0, FOCUS_MAX);
-  uniforms.uFocus.value = [...gids, ...Array(FOCUS_MAX - gids.length).fill(-1)];
-  uniforms.uFocusGroup.value = Array(FOCUS_MAX).fill(0);
-  uniforms.uFocusN.value = gids.length;
+  const gids = [...new Set(w.stops.flatMap(p => p.bags.map(gidOf)))].filter(g => g >= 0);
+  setFocus(gids, gids.map(() => 0));
 }
 function drawWalk(w) {
   walkGroup.clear();
@@ -1937,12 +1932,10 @@ function showFocus(G, ids) {
   });
   const gids = [], grp = [];
   for (const g of groups) for (const gid of g.gids) {
-    if (!gids.includes(gid) && gids.length < FOCUS_MAX) { gids.push(gid); grp.push(g.color); }
+    if (!gids.includes(gid)) { gids.push(gid); grp.push(g.color); }
   }
   if (!gids.length) return;
-  uniforms.uFocus.value = [...gids, ...Array(FOCUS_MAX - gids.length).fill(-1)];
-  uniforms.uFocusGroup.value = [...grp, ...Array(FOCUS_MAX - grp.length).fill(0)];
-  uniforms.uFocusN.value = gids.length;
+  setFocus(gids, grp);
   const pts = gids.map(building);
   const cx = pts.reduce((a, b) => a + b.x, 0) / pts.length, cz = pts.reduce((a, b) => a + b.z, 0) / pts.length;
   const spread = Math.max(...pts.map(b => Math.hypot(b.x - cx, b.z - cz)));
@@ -2436,10 +2429,17 @@ findInput.addEventListener('keydown', e => {
 });
 findInput.addEventListener('blur', () => setTimeout(() => { findList.hidden = true; }, 150));
 
+// A walk's or the graph's buildings carry their group's colour while the rest of the city is a plain model.
+function setFocus(gids, groups) {
+  for (let i = 1; i < pickData.length; i += 4) pickData[i] = 0;
+  gids.forEach((g, k) => { pickData[g * 4 + 1] = groups[k] + 1; });
+  pickTex.needsUpdate = true;
+  uniforms.uFocusN.value = gids.length;
+}
 // What the search found stays lit while the rest of the city dims.
 let found = null;
 function setLit(gids) {
-  pickData.fill(0);
+  for (let i = 0; i < pickData.length; i += 4) pickData[i] = 0;
   for (const g of gids) pickData[g * 4] = 255;
   pickTex.needsUpdate = true;
   uniforms.uPickOn.value = gids.length ? 1 : 0;
