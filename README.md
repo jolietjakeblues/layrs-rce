@@ -5,7 +5,7 @@ history, from national open data only. Or one kind of monument across a province
 
 - Amersfoort: https://layrs-amersfoort.pages.dev (with an archaeology mode)
 - Maastricht: https://layrs-maastricht.pages.dev
-- Dordrecht: https://layrs-dordrecht.pages.dev
+- Dordrecht: https://layrs-dordrecht.pages.dev (with an archaeology mode)
 - Zwolle: https://layrs-zwolle.pages.dev (with an archaeology mode)
 - Mills in Zuid-Holland: https://layrs-molens-zh.pages.dev (a theme, see below)
 
@@ -44,7 +44,7 @@ main streets to label from afar, and the pipeline steps. The pipeline reads and 
 | `s13_graph` | | makers, clients, complexes and styles of the monuments, linked to their buildings; architects with their Wikipedia article |
 | `s14_search`, `s15_addresses` | | search index, an address per building |
 | `s16_register` | | the register's entry per monument for the building card: text, complex, RCE photos |
-| `s00_fetch_archeo`, `s17_archeo` | RCE Elastic projection and Referentienetwerk (ABR) | archaeology mode (optional, Amersfoort): research areas under the city, one layer per ABR period, the deeper the older; archeologische complexen, grondsporen, vondsten; protected sites; a graph of ABR terms |
+| `s00_fetch_archeo`, `s17_archeo` | RCE Elastic projection and Referentienetwerk (ABR) | archaeology mode (optional: Amersfoort, Dordrecht, Zwolle): research areas under the city, one layer per ABR period, the deeper the older; archeologische complexen, grondsporen, vondsten; protected sites; a graph of ABR terms |
 
 ## Run it
 
