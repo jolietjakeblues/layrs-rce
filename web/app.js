@@ -113,7 +113,7 @@ const NL_UI = {
   'Wikipedia': 'Wikipedia', 'Dutch Wikipedia': 'Nederlandstalige Wikipedia', 'Monument register': 'Monumentenregister',
   'BAG register': 'BAG-register', 'BAG gives': 'De BAG geeft',
   'Click for the story and sources': 'Klik voor het verhaal en de bronnen', 'Click to keep this card open': 'Klik om deze kaart open te houden',
-  'Play the city\'s growth': 'Speel de groei van de stad af', 'Pause': 'Pauze', 'Close': 'Sluiten',
+  'Play the city\'s growth': 'Speel de groei van de stad af', 'Pause': 'Pauze', 'Repeat': 'Herhalen', 'Close': 'Sluiten',
   'The register gives a round year here, more often than neighbouring years predict. Read it as “around then”.': 'Het register geeft hier een rond jaartal, vaker dan de omliggende jaren doen verwachten. Lees het als ‘rond die tijd’.',
   'The register has no real year (placeholder 1005, or one of the surplus 1905s of the old centre). Estimated from the nearest dated buildings.': 'Het register heeft geen echt jaartal (de plaatshouder 1005, of een van de overtollige 1905’s in het oude centrum). Geschat uit de dichtstbijzijnde gedateerde gebouwen.',
   'Year from the register of national monuments, which dates the building earlier than BAG does.': 'Jaartal uit het rijksmonumentenregister, dat het gebouw eerder dateert dan de BAG.',
@@ -2291,8 +2291,12 @@ function moveHandle(x) {
 }
 
 // Play: quickly through the sparse centuries, then slowly through the dense ones.
-let playing = false, playT0 = 0, playStart = 0;
+// With repeat on the film runs back and forth: at today it turns and the city shrinks to its start, then grows again,
+// resting HOLD at either end before it turns.
+const HOLD = 10000;
+let playing = false, playT0 = 0, playStart = 0, playDir = 1, playHold = 0, repeat = false;
 const playBtn = document.getElementById('play');
+const repeatBtn = document.getElementById('repeat');
 const playIcon = document.getElementById('play-icon');
 const DURATION = (+new URLSearchParams(location.search).get('film') || 30) * 1000; // ?film=6 for a short film
 // A theme spends the film's time evenly over its monuments, from a little before the first was built to today.
@@ -2306,7 +2310,7 @@ function playYear(t) {
   return t < k ? T0 + (1850 - T0) * (t / k) : 1850 + (config.yearMax - 1850) * ((t - k) / (1 - k));
 }
 function startPlay() {
-  playing = true; playStart = performance.now();
+  playing = true; playStart = performance.now(); playDir = 1; playHold = 0;
   if (uniforms.uYear.value >= config.yearMax) uniforms.uYear.value = T0;
   playT0 = 0;
   while (playT0 < 1 && playYear(playT0) < uniforms.uYear.value) playT0 += 0.001;
@@ -2323,6 +2327,7 @@ function stopPlay() {
   playBtn.setAttribute('aria-label', "Play the city's growth");
 }
 playBtn.onclick = () => playing ? stopPlay() : startPlay();
+repeatBtn.onclick = () => { repeat = !repeat; repeatBtn.setAttribute('aria-pressed', String(repeat)); };
 
 // ---------- Loop ----------
 function resize() {
@@ -2510,6 +2515,7 @@ function applyStaticText() {
   }
   const ld = document.getElementById('loading'); if (ld.firstChild) ld.firstChild.textContent = t('Building the city') + ' ';
   playBtn.setAttribute('aria-label', t(playing ? 'Pause' : "Play the city's growth"));
+  repeatBtn.setAttribute('aria-label', t('Repeat')); repeatBtn.title = t('Repeat');
   document.querySelectorAll('.lang [data-lang]').forEach(b => b.setAttribute('aria-pressed', b.dataset.lang === LANG));
   sheetHandle.textContent = t('Legend');
   sheetHandle.setAttribute('aria-label', t(panelEl.classList.contains('collapsed') ? 'Show legend' : 'Hide legend'));
@@ -2547,12 +2553,23 @@ renderer.setAnimationLoop(now => {
   uniforms.uFog.value.set(dist * 1.6, dist * 4);
   if (frame % 6 === 0) updateLabels(dist);
   if (playing) {
-    const t = Math.min(1, playT0 + (now - playStart) / DURATION);
-    uniforms.uYear.value = playYear(t);
-    // A flight lasts about 0.8 s on screen whatever the film's pace: as many years as the film covers in that time.
-    uniforms.uRise.value = Math.max(2, (playYear(Math.min(1, t + 800 / DURATION)) - playYear(t)));
-    if (t >= 1) stopPlay();
-    drawHist();
+    if (now < playHold) {
+      // resting at an end: the last flights settle
+      uniforms.uRise.value = Math.max(0.01, uniforms.uRise.value * 0.9);
+    } else {
+      if (playHold) { playHold = 0; playStart = now; }
+      let t = playT0 + playDir * (now - playStart) / DURATION;
+      // back at the start it always turns forward again; at today it turns back only with repeat on
+      const turn = (playDir < 0 && t <= 0) || (playDir > 0 && t >= 1 && repeat);
+      t = Math.max(0, Math.min(1, t));
+      uniforms.uYear.value = playYear(t);
+      // A flight lasts about 0.8 s on screen whatever the film's pace: as many years as the film covers in that time.
+      const ahead = Math.max(0, Math.min(1, t + playDir * 800 / DURATION));
+      uniforms.uRise.value = Math.max(2, Math.abs(playYear(ahead) - playYear(t)));
+      if (turn) { playDir = -playDir; playT0 = t; playHold = now + HOLD; }
+      else if (playDir > 0 && t >= 1) stopPlay();
+      drawHist();
+    }
   }
   stepTheme(now, dist);
   if (pointer && !dragging && !ARCH.on && frame % 3 === 0) {
