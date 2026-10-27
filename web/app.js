@@ -210,6 +210,9 @@ Object.assign(NL_UI, {
   'Periods found here': 'Perioden die hier gevonden zijn', 'Archaeological complexes': 'Archeologische complexen',
   'Features': 'Grondsporen', 'Finds': 'Vondsten', 'Materials': 'Materialen', 'Find spots': 'Vindplaatsen',
   'Find spot': 'Vindplaats', 'Archaeological monument': 'Archeologisch monument', 'Loading…': 'Laden…',
+  'Research reports': 'Onderzoeksrapporten', 'Open the report in DANS': 'Open het rapport in DANS', 'not dated': 'niet gedateerd',
+  'Building history': 'Bouwhistorisch onderzoek', 'Excavation and watching brief': 'Opgraving en begeleiding',
+  'Desk study and boring': 'Bureau- en booronderzoek', 'Other research': 'Overig onderzoek', 'files': 'bestanden', 'file': 'bestand',
   'Archaeological national monument': 'Archeologisch rijksmonument', 'Archaeological national monuments': 'Archeologische rijksmonumenten',
   'Terms from the Referentienetwerk (ABR); only public records.': 'Begrippen uit het Referentienetwerk (ABR); alleen openbare gegevens.',
   'Every surface is a research area, once for each period its finds and features date from: the deeper, the older.':
@@ -578,7 +581,7 @@ function stepTheme(now, dist) {
 const ARCH_DEPTH = 28;          // metres between two periods' layers
 const ARCH_CENTRE = -ARCH_DEPTH * 3;
 const UNDERGROUND = '#2a2621';
-const ARCH = { on: false, data: null, meshes: [], edges: [], mask: [], focus: null, terrains: null };
+const ARCH = { on: false, data: null, meshes: [], edges: [], mask: [], focus: null, terrains: null, reports: null, repOn: true };
 const archGroup = new THREE.Group();
 archGroup.visible = false;
 scene.add(archGroup);
@@ -614,13 +617,57 @@ function archLayerMesh(shapes, color, opacity, y) {
   mesh.position.y = edge.position.y = y;
   return [mesh, edge];
 }
+// The reports of the DANS Data Station Archaeology, each a borehole: a line from the surface down through the layers of
+// the periods it covers, a bead on every one of them in that period's colour. An undated report is one bead just under
+// the surface. One instanced mesh per layer, so a period switched off in the panel takes its beads with it.
+const REPORT_TOP = -3, BEAD = 9;
+function buildReports(reps, data) {
+  const beadGeo = new THREE.SphereGeometry(BEAD, 10, 8);
+  const slots = data.layers.map(() => []);            // per layer: the reports that have a bead there
+  const top = [];                                      // the undated reports
+  reps.reports.forEach((r, k) => {
+    let any = false;
+    data.layers.forEach((_, i) => { if (r.m >> i & 1) { slots[i].push(k); any = true; } });
+    if (!any) top.push(k);
+  });
+  const bead = (list, color, y) => {
+    const mesh = new THREE.InstancedMesh(beadGeo, new THREE.MeshBasicMaterial({ color }), Math.max(list.length, 1));
+    mesh.count = list.length;
+    const m = new THREE.Matrix4();
+    list.forEach((k, j) => { const [x, z] = reps.reports[k].at; mesh.setMatrixAt(j, m.makeTranslation(x, y, z)); });
+    mesh.userData = { reportIds: list };
+    archGroup.add(mesh);
+    return mesh;
+  };
+  const meshes = data.layers.map((L, i) => bead(slots[i], L.color, -(i + 1) * ARCH_DEPTH));
+  const topMesh = bead(top, '#f2ece0', REPORT_TOP);
+  const lines = [];
+  reps.reports.forEach(r => {
+    const deepest = r.m ? Math.max(...data.layers.map((_, i) => (r.m >> i & 1) ? i : -1)) : -1;
+    if (deepest >= 0) lines.push(r.at[0], REPORT_TOP, r.at[1], r.at[0], -(deepest + 1) * ARCH_DEPTH, r.at[1]);
+  });
+  const lineGeo = new THREE.BufferGeometry();
+  lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(lines, 3));
+  const line = new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ color: '#f2ece0', transparent: true, opacity: 0.55 }));
+  archGroup.add(line);
+  ARCH.reports = { data: reps, meshes, topMesh, line };
+  setReportsVisible();
+}
+function setReportsVisible() {
+  const R = ARCH.reports;
+  if (!R) return;
+  R.meshes.forEach((m, i) => { m.visible = ARCH.repOn && !!ARCH.mask[i]; });
+  R.topMesh.visible = ARCH.repOn;
+  R.line.visible = ARCH.repOn;
+}
 let archLoading = null;
 function loadArcheo() {
   archLoading ??= Promise.all([
     fetch(D + 'archeo/areas.json').then(r => r.json()),
     fetch(D + 'archeo/areas.bin').then(r => r.arrayBuffer()),
     fetch(D + 'archeo/terrains.bin').then(r => r.ok ? r.arrayBuffer() : null).catch(() => null),
-  ]).then(([data, buf, tbuf]) => {
+    fetch(D + 'archeo/reports.json').then(r => r.ok ? r.json() : null).catch(() => null),
+  ]).then(([data, buf, tbuf, reps]) => {
     ARCH.data = data;
     ARCH.polys = shapesOf(buf);
     ARCH.mask = data.layers.map(() => 1);
@@ -643,6 +690,7 @@ function loadArcheo() {
       ARCH.terrains = [wash, border];
       archGroup.add(wash, border);
     }
+    if (reps?.reports.length) buildReports(reps, data);
   });
   return archLoading;
 }
@@ -707,6 +755,11 @@ function graphHref() {
 const archRay = new THREE.Raycaster();
 function archAt(x, y) {
   archRay.setFromCamera(new THREE.Vector2(x / innerWidth * 2 - 1, -(y / innerHeight) * 2 + 1), camera);
+  if (ARCH.reports && ARCH.repOn) {
+    const beads = [...ARCH.reports.meshes, ARCH.reports.topMesh].filter(m => m.visible && m.count);
+    const b = archRay.intersectObjects(beads, false)[0];
+    if (b) return { report: b.object.userData.reportIds[b.instanceId] };
+  }
   const targets = [...ARCH.meshes.filter(m => m.visible), ...(ARCH.terrains ? [ARCH.terrains[0]] : [])];
   const hit = archRay.intersectObjects(targets, false)[0];
   if (!hit) return null;
@@ -714,6 +767,7 @@ function archAt(x, y) {
   const k = hit.object.userData.owner[g ? g.materialIndex : 0];
   return hit.object.userData.terrain ? { terrain: k } : { area: k, layer: hit.object.userData.layer };
 }
+const REPORT_KIND = { building: 'Building history', dig: 'Excavation and watching brief', survey: 'Desk study and boring', other: 'Other research' };
 const termLink = ([label, uri, n]) => `<li>${uri ? link(uri, label) : esc(label)} <small>${n}</small></li>`;
 function archCardHtml(hit) {
   const D_ = ARCH.data, ldv = uri => `<p class="ldv">${t('In the Linked Data Voorziening')}: ${link(uri, uri)}</p>`;
@@ -725,6 +779,19 @@ function archCardHtml(hit) {
       <section class="register"><p class="extract" lang="nl">${esc(s.txt)}</p>
         <p class="reg-main">${link(`https://monumentenregister.cultureelerfgoed.nl/monumenten/${s.nr}`, `${t('View in the Rijksmonumentenregister')} (${LANG === 'nl' ? 'nr.' : 'no.'} ${s.nr})`)}</p>
         ${ldv(s.cho)}</section>`;
+  }
+  if (hit.report !== undefined) {
+    const r = ARCH.reports.data.reports[hit.report];
+    const periods = D_.layers.filter((_, i) => r.m >> i & 1);
+    return `<button class="card-close" aria-label="Close">×</button>
+      <header class="card-head" style="background:#f2ece0;color:#2a2621"><h3>${esc(r.t)}</h3>
+        <p class="addr"><span>${esc(r.a)}${r.a && r.y ? ' · ' : ''}${esc(r.y)}</span></p>
+        <div class="when"><span class="y">${t(REPORT_KIND[r.k] || 'Other research')}</span></div></header>
+      <section><h4>${t('Periods found here')}</h4><ul class="terms">${periods.length ? periods.map(l =>
+        `<li><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${l.color}"></i> ${esc(LANG === 'nl' ? l.label : l.label_en)} <small>${esc(archYears(l))}</small></li>`).join('')
+        : `<li>${t('not dated')}</li>`}</ul></section>
+      <section class="register arch-card"><p class="reg-main">${link(r.d, t('Open the report in DANS'))}${r.f ? ` <small>${fmt(r.f)} ${t(r.f === 1 ? 'file' : 'files')}</small>` : ''}</p>
+        <p class="why">DANS Data Station Archeologie</p></section>`;
   }
   const a = D_.areas[hit.area], L = D_.layers[hit.layer];
   const name = l => LANG === 'nl' ? l.label : l.label_en;
@@ -765,13 +832,21 @@ function renderArcheoPanel() {
         <i style="background:${l.color}"></i><span>${esc(name(l))} <small>${esc(archYears(l))}</small></span><span class="n">${fmt(l.count)}</span>
       </button>`).join('')}
       ${D_.terrains.length ? `<button class="swatch" data-t="1" aria-pressed="${ARCH.terrains?.[0].visible !== false}">
-        <i style="background:${TOWNSCAPE}"></i><span>${t('Archaeological national monuments')}</span><span class="n">${fmt(D_.terrains.length)}</span></button>` : ''}</div>
+        <i style="background:${TOWNSCAPE}"></i><span>${t('Archaeological national monuments')}</span><span class="n">${fmt(D_.terrains.length)}</span></button>` : ''}
+      ${ARCH.reports ? `<button class="swatch" data-r="1" aria-pressed="${ARCH.repOn}">
+        <i style="background:#f2ece0;border-radius:50%"></i><span>${t('Research reports')} <small>DANS</small></span><span class="n">${fmt(ARCH.reports.data.reports.length)}</span></button>` : ''}</div>
     <p class="note">${t('Click a period to see it alone; click a surface for what was found there. Periods and terms from the Referentienetwerk (ABR), records from the RCE Linked Data Voorziening; only what is public.')}</p>`;
   panel.querySelectorAll('.swatch[data-i]').forEach(b => b.onclick = () => {
     const i = +b.dataset.i, m = ARCH.mask, solo = m.every((v, j) => (j === i) === !!v);
     ARCH.mask = D_.layers.map((_, j) => (solo || j === i) ? 1 : 0);
     ARCH.meshes.forEach((x, j) => { x.visible = ARCH.edges[j].visible = !!ARCH.mask[j]; });
+    setReportsVisible();
     archFocusMeshes();
+    renderPanel();
+  });
+  panel.querySelector('.swatch[data-r]')?.addEventListener('click', () => {
+    ARCH.repOn = !ARCH.repOn;
+    setReportsVisible();
     renderPanel();
   });
   panel.querySelector('.swatch[data-t]')?.addEventListener('click', () => {
@@ -2012,12 +2087,14 @@ const totals = periods.map(() => 0);
 for (const v of Object.values(HIST)) v.forEach((n, i) => totals[i] += n);
 const fmt = n => n.toLocaleString(fmtLocale());
 let activeLayer = null;
-const SECTION_ORDER = ['Discover', 'Architecture', 'Trade and empire', 'Art and craft', 'Science and learning',
+const SECTION_ORDER = ['Discover', 'Architecture', 'Archaeology', 'Water', 'Trade and empire', 'Art and craft', 'Science and learning',
   'Faith and community', 'Countries and communities', 'The modern city', 'War and occupation'];
 const groupOn = {};
 let maskTarget = periods.map(() => 1);
 
 const ICON = {
+  'Water': '<path d="M8 1.8C6 4.6 3.8 6.8 3.8 9.4a4.2 4.2 0 0 0 8.4 0C12.2 6.8 10 4.6 8 1.8z"/>',
+  'Archaeology': '<path d="M2 4.5c2-1.2 4-1.2 6 0s4 1.2 6 0M2 8.5c2-1.2 4-1.2 6 0s4 1.2 6 0M2 12.5c2-1.2 4-1.2 6 0s4 1.2 6 0"/>',
   'Buildings today': '<path d="M2.5 14.5h11"/><rect x="3" y="8" width="2.6" height="6.5"/><rect x="6.7" y="4" width="2.6" height="10.5"/><rect x="10.4" y="6" width="2.6" height="8.5"/>',
   'Art and craft': '<path d="M6 1.5h4M6.6 1.5v2.6C4.2 5.5 3.6 8 4 10.5c.4 2.4 1.9 4 4 4s3.6-1.6 4-4c.4-2.5-.2-5-2.6-6.4V1.5"/><path d="M5.2 8.5c1.8.8 3.8.8 5.6 0"/>',
   'Science and learning': '<path d="M6 1.5h4M6.8 1.5v4.5L3 13.2c-.4.7.1 1.3.9 1.3h8.2c.8 0 1.3-.6.9-1.3L9.2 6V1.5"/><path d="M4.6 10.5h6.8"/>',

@@ -10,6 +10,21 @@
   "home": {"x": -350, "z": 150, "azimuth": 200, "elevation": 40, "span": 4000},
   "roofs_within": 1100,
   "suspect_years": [],
+  "flood": true,
+  "residents": {"list": "Lijst van Dordtenaren"},
+  "dans": {
+    "q": "Dordrecht",
+    "url": "https://archaeology.datastations.nl/dataverse/root?q=Dordrecht"
+  },
+  "gemeentelijke_monumenten": {
+    "url": "https://nl.wikipedia.org/wiki/Lijst_van_gemeentelijke_monumenten_in_Dordrecht",
+    "pages": [
+      ["Lijst van gemeentelijke monumenten in de binnenstad van Dordrecht", "Binnenstad"],
+      ["Lijst van gemeentelijke monumenten in Noordflank", "Noordflank"],
+      ["Lijst van gemeentelijke monumenten in Dubbeldam", "Dubbeldam"],
+      ["Lijst van gemeentelijke monumenten in Dordrecht", null]
+    ]
+  },
   "periods": [
     ["p1", "Before 1500 Medieval town", "Vóór 1500 Middeleeuwse stad", 1000, 1499, "#4a1410"],
     ["p2", "1500–1649", "1500–1649", 1500, 1649, "#8c1c13"],
@@ -27,8 +42,8 @@
             "Bagijnhof", "Toulonselaan", "Burgemeester de Raadtsingel", "Laan der Verenigde Naties",
             "Dubbeldamseweg", "Brouwersdijk", "Krispijnseweg", "Noordendijk", "Oranjelaan", "Amstelwijckweg",
             "Zuidendijk", "Mijlweg", "Admiraal de Ruyterweg", "Karel Lotsylaan", "Overkampweg", "Smitsweg"],
-  "steps": ["s00_fetch_boundary", "s00_fetch_3dbag", "s00_fetch_3dbv", "s00_fetch_water", "s00_fetch_addresses",
-            "s00_fetch_energy", "s00_fetch_rce", "s00_fetch_archeo", "s00_fetch_wikidata", "s01_load", "s02_attributes",
+  "steps": ["s00_fetch_boundary", "s00_fetch_3dbag", "s00_fetch_3dbv", "s00_fetch_water", "s00_fetch_flood", "s00_fetch_addresses",
+            "s00_fetch_energy", "s00_fetch_rce", "s00_fetch_gemeentelijk", "s00_fetch_dans", "s00_fetch_residents", "s00_fetch_archeo", "s00_fetch_wikidata", "s01_load", "s02_attributes",
             "s01c_roofs", "s01d_spires", "s05_layers", "s07_labels", "s10_commons", "s06_wiki", "s17_archeo", "s03_tiles",
             "s04_water", "s13_graph",
             "s14_search", "s15_addresses", "s16_register"]

@@ -16,8 +16,10 @@ from functools import cache
 from pathlib import Path
 
 import geopandas as gpd
+import numpy as np
 
-from .city import DATA, LABEL, THEME
+from . import dans, gemeentelijk
+from .city import CFG, DATA, LABEL, THEME
 from .monuments import wd_monuments
 
 LAYERS = []
@@ -289,6 +291,251 @@ def townscapes():
 )
 def heritage():
     return {p: "Rijksmonument" for m in monuments() for p in m["panden"]}
+
+
+# ---------- municipal monuments ----------
+# The municipality's own register is not open data; the volunteers of Wikipedia keep a list per city (s00_fetch_gemeentelijk).
+# Only a city whose config names that list has this layer.
+
+MUNICIPAL = [
+    # (group, label, label_nl, pattern on the object as the list names it); the first that matches wins
+    ("community", "Faith, school and care", "Geloof, school en zorg",
+     r"kerk|kapel|klooster|pastorie|begraaf|bezinning|school|ziekenhuis|badhuis|archief|verenigingsgebouw|raadhuis|gemeentehuis"),
+    ("works", "Water, power and roads", "Water, energie en verkeer",
+     r"brug|sluis|watertoren|schakelstation|trafo|duiker|dijk|schoorsteen|pomphuis|wiel\b|hekwerk|veerhuis"),
+    ("farm", "Farms", "Boerderijen", r"boerderij|stal\b|schuur|hallehuis|kop-romp"),
+    ("green", "Parks and memorials", "Parken en gedenktekens", r"park|monument|gedenkteken|tuin"),
+    ("work", "Trade and work", "Handel en bedrijf",
+     r"pakhuis|winkel|fabriek|bedrijf|kantoor|magazijn|brouwerij|werkplaats|garage|hotel|horeca|caf.|bakkerij|handel"),
+    ("home", "Houses", "Woonhuizen", r"woon|woning|huis|villa"),
+]
+
+
+def municipal_group(obj: str) -> str | None:
+    o = (obj or "").lower()
+    return next((k for k, _, _, pat in MUNICIPAL if re.search(pat, o)), None)
+
+
+def municipal_note(r: dict, source: str) -> dict:
+    kind, where = r["object"], r["address"]
+    name = f"{kind}, {where}" if kind and len(kind) <= 40 else where
+    parts = [f"{kind.rstrip('.')}." if len(kind) > 40 else "", f"Gemeentelijk monument {r['nr']}, {r['district']}." if r["district"]
+             else f"Gemeentelijk monument {r['nr']}."]
+    if r["year"]:
+        parts.append(f"Bouwjaar {r['year']}.")
+    if r["architect"]:
+        parts.append(f"Architect: {r['architect']}.")
+    line = " ".join(p for p in parts if p)
+    return {"name": name, "name_nl": name, "story": line, "story_nl": line, "source": source}
+
+
+if gemeentelijk.available():
+    _src = CFG["gemeentelijke_monumenten"]["url"]
+
+    @layer(
+        id="municipal", section="Architecture", section_nl="Architectuur",
+        title="Municipal monuments", title_nl="Gemeentelijke monumenten", era="All periods", era_nl="Alle perioden",
+        text=(f"Below the national monuments {LABEL} protects buildings of local value as municipal monuments: "
+              "merchants' houses and warehouses, schools, factories, farms and the streets of workers' housing that "
+              "tell the everyday history of the city."),
+        text_nl=(f"Onder de rijksmonumenten beschermt {LABEL} gebouwen van lokale waarde als gemeentelijk monument: "
+                 "koopmanshuizen en pakhuizen, scholen, fabrieken, boerderijen en de straten met arbeiderswoningen die "
+                 "de alledaagse geschiedenis van de stad vertellen."),
+        caveat="From Wikipedia's list of municipal monuments, placed by address and coordinate; a few park and street monuments have no building.",
+        caveat_nl="Uit de lijst van gemeentelijke monumenten op Wikipedia, geplaatst op adres en coördinaat; enkele park- en straatmonumenten hebben geen gebouw.",
+        source=("Lijst van gemeentelijke monumenten, Wikipedia", _src),
+        groups=[(k, en, nl) for k, en, nl, _ in MUNICIPAL],
+    )
+    def municipal():
+        by_nr, out = gemeentelijk.panden(), {}
+        for r in gemeentelijk.rows():
+            g = municipal_group(r["object"])
+            note = municipal_note(r, _src)
+            for p in by_nr.get(r["nr"], ()) if g else ():
+                out.setdefault(p, []).append((g, note))
+        return out
+
+
+# ---------- research reports ----------
+# The DANS Data Station Archaeology holds the municipality's excavation, survey and building-history reports (s00_fetch_dans).
+# A report marks the buildings near its coordinate, or the pand its title names.
+
+REPORTS = [
+    ("building", "Building history", "Bouwhistorisch onderzoek"),
+    ("dig", "Excavation and watching brief", "Opgraving en begeleiding"),
+    ("survey", "Desk study and boring", "Bureau- en booronderzoek"),
+    ("other", "Other research", "Overig onderzoek"),
+]
+
+
+def reports_note(rs: list[dict]) -> dict:
+    """One note for a building: its first report by name, the others (up to two more) in the story."""
+    rs = sorted(rs, key=lambda r: r["year"])
+    cite = lambda r: f"{r['title']} ({', '.join(x for x in [r['authors'][0] if r['authors'] else '', r['year']] if x)})"
+    story = "Onderzoek op deze plek: " + "; ".join(cite(r) for r in rs[:3]) + (f" en {len(rs) - 3} meer" if len(rs) > 3 else "") + "."
+    return {"name": rs[0]["title"][:80], "name_nl": rs[0]["title"][:80], "story": story, "story_nl": story, "source": rs[0]["doi"]}
+
+
+if dans.available():
+    @layer(
+        id="reports", section="Archaeology", section_nl="Archeologie",
+        title="Research reports", title_nl="Onderzoeksrapporten", era="All periods", era_nl="Alle perioden",
+        text=(f"What {LABEL} learned by digging and measuring: excavations, watching briefs, borings and the building-history "
+              "studies of single houses. Every report is open at the DANS Data Station Archaeology, with its drawings and finds."),
+        text_nl=(f"Wat {LABEL} leerde door te graven en te meten: opgravingen, archeologische begeleidingen, boringen en de "
+                 "bouwhistorische studies van losse huizen. Elk rapport staat open in het DANS Data Station Archeologie, "
+                 "met tekeningen en vondsten."),
+        caveat="Reports with a coordinate mark the buildings within 20 metres; reports without one only when their title names the address.",
+        caveat_nl="Rapporten met een coördinaat kleuren de gebouwen binnen 20 meter; rapporten zonder coördinaat alleen als de titel het adres noemt.",
+        source=("DANS Data Station Archeologie", CFG["dans"]["url"]),
+        groups=REPORTS,
+    )
+    def reports():
+        rs, per = dans.rows(), {}
+        for i, bags in dans.panden().items():
+            for p in bags:
+                per.setdefault(p, []).append(rs[i])
+        out = {}
+        for p, found in per.items():
+            note = reports_note(found)
+            out[p] = [(g, note) for g in sorted({dans.kind(r) for r in found})]
+        return out
+
+
+# ---------- flooding ----------
+# The LIWO's national maps of the greatest flood depth, one for each probability class (s00_fetch_flood). A building is
+# in the class of the most probable flood that reaches it, so the groups read from "floods about once in ten years"
+# to "only in the most extreme scenario".
+
+FLOOD = [
+    # (group, label, label_nl)
+    ("f1", "Once in 10 years (large chance)", "Eens in de 10 jaar (grote kans)"),
+    ("f2", "Once in 100 years (medium chance)", "Eens in de 100 jaar (middelgrote kans)"),
+    ("f3", "Once in 1,000 years (small chance)", "Eens in de 1.000 jaar (kleine kans)"),
+    ("f4", "Once in 10,000 years (very small chance)", "Eens in de 10.000 jaar (zeer kleine kans)"),
+    ("f5", "Once in 100,000 years (extremely small chance)", "Eens in de 100.000 jaar (extreem kleine kans)"),
+]
+FLOOD_DIR = Path(f"{DATA}/raw/flood")
+
+if all((FLOOD_DIR / f"kaart{k}.tif").exists() for k in range(1, 6)):
+    @layer(
+        id="flood", section="Water", section_nl="Water", era="All periods", era_nl="Alle perioden",
+        title="Flooding", title_nl="Overstroming",
+        text=(f"Much of {LABEL} lies behind dikes. Every building is coloured by the most probable flood that could reach it, "
+              "from once in ten years to once in a hundred thousand: where the water would come after a breach, and how "
+              "unlikely that is."),
+        text_nl=(f"Een groot deel van {LABEL} ligt achter dijken. Elk gebouw heeft de kleur van de meest waarschijnlijke "
+                 "overstroming die het kan bereiken, van eens in de tien jaar tot eens in de honderdduizend jaar: waar het "
+                 "water na een dijkdoorbraak zou komen en hoe onwaarschijnlijk dat is."),
+        caveat=("The maps combine many separate scenarios that would never all happen at once; the chance is that of the "
+                "class, not of one breach. Depth at the middle of the building, at 5 m cells."),
+        caveat_nl=("De kaarten combineren veel losse scenario's die nooit allemaal tegelijk zouden optreden; de kans is die "
+                   "van de klasse, niet van één doorbraak. Diepte in het midden van het gebouw, op cellen van 5 m."),
+        source=("Maximale waterdiepte Nederland, LIWO (Rijkswaterstaat)", "https://basisinformatie-overstromingen.nl"),
+        groups=FLOOD,
+    )
+    def flood():
+        return {bag: f"f{k}" for bag, k in _flood_class().items()}
+
+
+@cache
+def _flood_depths() -> tuple[dict, np.ndarray]:
+    """{bag: class 1-5 of the most probable flood that reaches it}, and the greatest depth (m) of the extreme map, per building."""
+    import rasterio
+
+    b = buildings()
+    c = b.geometry.representative_point()
+    first, depth = {}, None
+    for k in range(1, 6):
+        with rasterio.open(FLOOD_DIR / f"kaart{k}.tif") as ds:
+            d = np.array([v[0] for v in ds.sample(list(zip(c.x, c.y)))], dtype="float32")
+            wet = (d > 0) & (d != ds.nodata)
+        for bag in b.bag[wet & ~b.bag.isin(first)]:
+            first[bag] = k
+        depth = np.where(wet, d, 0.0)  # the last map, the extreme one, holds every scenario's greatest depth
+    return first, depth
+
+
+def _flood_class() -> dict:
+    return _flood_depths()[0]
+
+
+DEPTH = [
+    # (group, label, label_nl, lower, upper)
+    ("d1", "Under 0.5 m", "Minder dan 0,5 m", 0, 0.5),
+    ("d2", "0.5 to 1 m", "0,5 tot 1 m", 0.5, 1),
+    ("d3", "1 to 2 m", "1 tot 2 m", 1, 2),
+    ("d4", "2 to 2.5 m", "2 tot 2,5 m", 2, 2.5),
+    ("d5", "2.5 to 3 m", "2,5 tot 3 m", 2.5, 3),
+    ("d6", "Over 3 m", "Meer dan 3 m", 3, 99),
+]
+
+if FLOOD_DIR.joinpath("kaart5.tif").exists() and all((FLOOD_DIR / f"kaart{k}.tif").exists() for k in range(1, 6)):
+    @layer(
+        id="flood-depth", section="Water", section_nl="Water", era="All periods", era_nl="Alle perioden",
+        title="Flood depth", title_nl="Overstromingsdiepte",
+        text=(f"How deep the water would stand in {LABEL} in the most extreme flood the national maps compute: the greatest "
+              "depth any of the scenarios gives at the building. The low parts show up at once."),
+        text_nl=(f"Hoe diep het water in {LABEL} zou staan bij de meest extreme overstroming die de landelijke kaarten "
+                 "berekenen: de grootste diepte die een van de scenario's bij het gebouw geeft. De lage delen vallen direct op."),
+        caveat=("Greatest depth of all scenarios of the extremely-small-chance map (once in 100,000 years); a single flood "
+                "would not reach every building at once. Depth at the middle of the building, at 5 m cells."),
+        caveat_nl=("Grootste diepte van alle scenario's op de extreem-kleine-kanskaart (eens in de 100.000 jaar); één "
+                   "overstroming bereikt niet alle gebouwen tegelijk. Diepte in het midden van het gebouw, op cellen van 5 m."),
+        source=("Maximale waterdiepte Nederland, LIWO (Rijkswaterstaat)", "https://basisinformatie-overstromingen.nl"),
+        groups=[(k, en, nl) for k, en, nl, _, _ in DEPTH],
+    )
+    def flood_depth():
+        depth = _flood_depths()[1]
+        bags = buildings().bag.to_numpy()
+        out = {}
+        for k, _, _, lo, hi in DEPTH:
+            hit = (depth > lo) & (depth <= hi)
+            out.update({bag: k for bag in bags[hit]})
+        return out
+
+
+# ---------- who lived here ----------
+# Well-known residents (s00_fetch_residents): deceased people whose Dutch Wikipedia article names the address where they
+# lived or worked. The viewer gives this layer a panel of its own, a list of people that flies to the house.
+
+def _residents_file() -> Path:
+    return Path(f"{RAW}/residents.json")
+
+
+if _residents_file().exists() and json.load(open(_residents_file(), encoding="utf-8")):
+    @layer(
+        id="residents", section="Architecture", section_nl="Architectuur",
+        title="Who lived here", title_nl="Wie woonde hier", era="1600–today", era_nl="1600–nu",
+        text=(f"People from {LABEL} history whose Wikipedia biography names the address where they lived or worked. "
+              "Pick a name to fly to the house."),
+        text_nl=(f"Mensen uit de geschiedenis van {LABEL} van wie de Wikipedia-biografie het adres noemt waar ze woonden "
+                 "of werkten. Kies een naam om naar het huis te vliegen."),
+        caveat=("Found automatically in Dutch Wikipedia and matched to today's address, for people who have died; house "
+                "numbers have sometimes changed, and some houses were rebuilt since."),
+        caveat_nl=("Automatisch gevonden in de Nederlandse Wikipedia en gekoppeld aan het adres van nu, alleen voor "
+                   "overleden personen; huisnummers zijn soms veranderd en sommige huizen zijn sindsdien herbouwd."),
+        source=("Dutch Wikipedia, via Wikidata", "https://nl.wikipedia.org"),
+        groups=[("res", "Home of a well-known resident", "Woonhuis van een bekende bewoner")],
+    )
+    def residents():
+        rows = json.load(open(_residents_file(), encoding="utf-8"))
+        b = buildings()
+        at_point = [r for r in rows if not r.get("bag") and r.get("rd")]
+        if at_point:  # an address the BAG addresses lack: the building at its PDOK coordinate
+            pts = gpd.GeoDataFrame({"i": range(len(at_point))}, geometry=gpd.points_from_xy(
+                [r["rd"][0] for r in at_point], [r["rd"][1] for r in at_point]), crs=28992)
+            hit = gpd.sjoin(pts, b[["bag", "geometry"]], predicate="within").drop_duplicates("i").set_index("i").bag
+            for i, r in enumerate(at_point):
+                r["bag"] = hit.get(i)
+        out = {}
+        for r in rows:
+            if not r.get("bag"):
+                continue
+            n = out.setdefault(r["bag"], ("res", {"name": r["person"], "people": []}))[1]
+            n["people"].append({k: r[k] for k in ("person", "born", "died", "desc", "quote", "url", "links", "address")}
+                             | {"desc": re.sub(r"\s*\(\d{4}\s*[-–]\s*\d{4}\)$", "", r["desc"] or "") or None})
+        return out
 
 
 # ---------- a theme's facets ----------
