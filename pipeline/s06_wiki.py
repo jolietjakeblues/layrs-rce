@@ -14,6 +14,7 @@ from urllib.parse import unquote
 
 import pandas as pd
 import requests
+from . import gemeentelijk
 from .city import CFG, DATA, LABEL, UA, WEB
 
 
@@ -139,6 +140,25 @@ def main():
                 entries.append(dict(label=None, label_nl=None, wiki=None, wiki_nl=None, architects=[], styles=[], image=img))
             added += 1
         print(added, "buildings got a Commons photo by address")
+    # Photos the list of municipal monuments names (s00_fetch_gemeentelijk) fill buildings that still have none.
+    if gemeentelijk.available():
+        listed = {nr: r["image"] for r in gemeentelijk.rows() if r["image"] for nr in [r["nr"]]}
+        found = images(set(listed.values()))
+        added = 0
+        for nr, f in listed.items():
+            img = found.get(f)
+            if not img or not img.get("thumb"):
+                continue
+            for bag in gemeentelijk.panden().get(nr, ())[:1]:
+                if bag in index:
+                    if entries[index[bag]].get("image"):
+                        continue
+                    entries[index[bag]]["image"] = img
+                else:
+                    index[bag] = len(entries)
+                    entries.append(dict(label=None, label_nl=None, wiki=None, wiki_nl=None, architects=[], styles=[], image=img))
+                added += 1
+        print(added, "buildings got a photo from the list of municipal monuments")
     # Monuments the register names (s00_fetch_rce) give their name to buildings that have none yet.
     named = 0
     for m in json.load(open(f"{DATA}/raw/layers/monuments.json", encoding="utf-8")):

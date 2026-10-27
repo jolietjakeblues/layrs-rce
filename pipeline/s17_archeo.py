@@ -12,6 +12,8 @@ SPREAD_MAX layers says little about when, and counts as undated.
   terrains.bin  the archaeological rijksmonumenten (protected sites)
   areas.json  {layers: [...], areas: [{nr, cho, poly: [first, count], mask, name, spots, counts, complexes, features,
                finds, materials, registered}], terrains: [{nr, cho, name, txt, poly}]}
+  reports.json  the city's reports of the DANS Data Station Archaeology (s00_fetch_dans), each a borehole through the
+              layers of the periods it covers: {layers: [...], reports: [{t, a, y, d, k, at: [x, z], m, f}]}
   graph.json  periods, archeologische complexen, grondsporen and materials, linked to the areas they occur in, every
               point a term of the Referentienetwerk; in s13_graph's format, for graph.html?mode=archeo
 """
@@ -23,7 +25,9 @@ import numpy as np
 import shapely
 from pyproj import Transformer
 
-from .city import DATA, WEB
+from . import dans
+from .city import CFG, DATA, WEB
+from .s03_tiles import ORIGIN
 from .s04_water import pack, polygons
 
 RAW = Path(f"{DATA}/raw/archeo")
@@ -55,6 +59,33 @@ def local_polys(wkt: str) -> list:
     g = shapely.transform(shapely.from_wkt(wkt), lambda xy: np.c_[TO_RD.transform(xy[:, 0], xy[:, 1])])
     g = shapely.make_valid(g).simplify(1.0)
     return [p for p in polygons(g) if p.area > 4]  # in RD: pack() puts them in the viewer's frame
+
+
+# the ABR 1 period names DANS cites, as the layer they fall in: the first that is contained in the name wins
+PERIOD_LAYER = [("Late Middeleeuwen", ["Late Middeleeuwen"]), ("Vroege Middeleeuwen", ["Vroege Middeleeuwen"]),
+                ("Vroeg Middeleeuwen", ["Vroege Middeleeuwen"]), ("Middeleeuwen", ["Late Middeleeuwen", "Vroege Middeleeuwen"]),
+                ("Nieuwe Tijd", ["Nieuwe Tijd"]), ("Recent", ["Recent"]), ("Romeinse Tijd", ["Romeinse Tijd"]),
+                ("IJzertijd", ["IJzertijd"]), ("Bronstijd", ["Bronstijd"]), ("Neolithicum", ["Neolithicum"]),
+                ("Mesolithicum", ["Mesolithicum"]), ("Paleolithicum", ["Paleolithicum"])]
+
+
+def reports(layers: list[dict]) -> list[dict]:
+    """The DANS reports with a place, as boreholes: the layers (bits) of the periods they name, none when undated."""
+    if not dans.available():
+        return []
+    bit = {L["label"]: i for i, L in enumerate(layers)}
+    rs, where, out = dans.rows(), dans.where(), []
+    for i, (x, y) in where.items():
+        r, m = rs[i], 0
+        for name in r.get("periodLabels", []):
+            for key, targets in PERIOD_LAYER:
+                if key in name:
+                    for t in targets:
+                        m |= 1 << bit[t]
+                    break
+        out.append(dict(t=r["title"], a="; ".join(r["authors"][:2]), y=r["year"], d=r["doi"], k=dans.kind(r),
+                        at=[round(x - ORIGIN[0], 1), round(-(y - ORIGIN[1]), 1)], m=m, f=r.get("files") or 0))
+    return out
 
 
 def main():
@@ -133,6 +164,12 @@ def main():
                                                ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(len(out_areas), "of", len(areas), "areas with dated finds,", len(rings), "polygons;",
           {L["label"]: L["count"] for L in layers})
+
+    reps = reports(layers)
+    if reps:
+        (OUT / "reports.json").write_text(json.dumps(dict(url=CFG["dans"]["url"], reports=reps), ensure_ascii=False,
+                                                     separators=(",", ":")), encoding="utf-8")
+        print(len(reps), "DANS reports in the archaeology mode,", sum(1 for r in reps if r["m"]), "dated")
 
     # ---------- the graph: Referentienetwerk terms linked to the areas they occur in ----------
     nodes, links = {}, defaultdict(lambda: defaultdict(Counter))

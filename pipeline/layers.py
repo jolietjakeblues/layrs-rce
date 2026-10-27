@@ -17,7 +17,8 @@ from pathlib import Path
 
 import geopandas as gpd
 
-from .city import DATA, LABEL, THEME
+from . import dans, gemeentelijk
+from .city import CFG, DATA, LABEL, THEME
 from .monuments import wd_monuments
 
 LAYERS = []
@@ -289,6 +290,115 @@ def townscapes():
 )
 def heritage():
     return {p: "Rijksmonument" for m in monuments() for p in m["panden"]}
+
+
+# ---------- municipal monuments ----------
+# The municipality's own register is not open data; the volunteers of Wikipedia keep a list per city (s00_fetch_gemeentelijk).
+# Only a city whose config names that list has this layer.
+
+MUNICIPAL = [
+    # (group, label, label_nl, pattern on the object as the list names it); the first that matches wins
+    ("community", "Faith, school and care", "Geloof, school en zorg",
+     r"kerk|kapel|klooster|pastorie|begraaf|bezinning|school|ziekenhuis|badhuis|archief|verenigingsgebouw|raadhuis|gemeentehuis"),
+    ("works", "Water, power and roads", "Water, energie en verkeer",
+     r"brug|sluis|watertoren|schakelstation|trafo|duiker|dijk|schoorsteen|pomphuis|wiel\b|hekwerk|veerhuis"),
+    ("farm", "Farms", "Boerderijen", r"boerderij|stal\b|schuur|hallehuis|kop-romp"),
+    ("green", "Parks and memorials", "Parken en gedenktekens", r"park|monument|gedenkteken|tuin"),
+    ("work", "Trade and work", "Handel en bedrijf",
+     r"pakhuis|winkel|fabriek|bedrijf|kantoor|magazijn|brouwerij|werkplaats|garage|hotel|horeca|caf.|bakkerij|handel"),
+    ("home", "Houses", "Woonhuizen", r"woon|woning|huis|villa"),
+]
+
+
+def municipal_group(obj: str) -> str | None:
+    o = (obj or "").lower()
+    return next((k for k, _, _, pat in MUNICIPAL if re.search(pat, o)), None)
+
+
+def municipal_note(r: dict, source: str) -> dict:
+    kind, where = r["object"], r["address"]
+    name = f"{kind}, {where}" if kind and len(kind) <= 40 else where
+    parts = [f"{kind.rstrip('.')}." if len(kind) > 40 else "", f"Gemeentelijk monument {r['nr']}, {r['district']}." if r["district"]
+             else f"Gemeentelijk monument {r['nr']}."]
+    if r["year"]:
+        parts.append(f"Bouwjaar {r['year']}.")
+    if r["architect"]:
+        parts.append(f"Architect: {r['architect']}.")
+    line = " ".join(p for p in parts if p)
+    return {"name": name, "name_nl": name, "story": line, "story_nl": line, "source": source}
+
+
+if gemeentelijk.available():
+    _src = CFG["gemeentelijke_monumenten"]["url"]
+
+    @layer(
+        id="municipal", section="Architecture", section_nl="Architectuur",
+        title="Municipal monuments", title_nl="Gemeentelijke monumenten", era="All periods", era_nl="Alle perioden",
+        text=(f"Below the national monuments {LABEL} protects buildings of local value as municipal monuments: "
+              "merchants' houses and warehouses, schools, factories, farms and the streets of workers' housing that "
+              "tell the everyday history of the city."),
+        text_nl=(f"Onder de rijksmonumenten beschermt {LABEL} gebouwen van lokale waarde als gemeentelijk monument: "
+                 "koopmanshuizen en pakhuizen, scholen, fabrieken, boerderijen en de straten met arbeiderswoningen die "
+                 "de alledaagse geschiedenis van de stad vertellen."),
+        caveat="From Wikipedia's list of municipal monuments, placed by address and coordinate; a few park and street monuments have no building.",
+        caveat_nl="Uit de lijst van gemeentelijke monumenten op Wikipedia, geplaatst op adres en coördinaat; enkele park- en straatmonumenten hebben geen gebouw.",
+        source=("Lijst van gemeentelijke monumenten, Wikipedia", _src),
+        groups=[(k, en, nl) for k, en, nl, _ in MUNICIPAL],
+    )
+    def municipal():
+        by_nr, out = gemeentelijk.panden(), {}
+        for r in gemeentelijk.rows():
+            g = municipal_group(r["object"])
+            note = municipal_note(r, _src)
+            for p in by_nr.get(r["nr"], ()) if g else ():
+                out.setdefault(p, []).append((g, note))
+        return out
+
+
+# ---------- research reports ----------
+# The DANS Data Station Archaeology holds the municipality's excavation, survey and building-history reports (s00_fetch_dans).
+# A report marks the buildings near its coordinate, or the pand its title names.
+
+REPORTS = [
+    ("building", "Building history", "Bouwhistorisch onderzoek"),
+    ("dig", "Excavation and watching brief", "Opgraving en begeleiding"),
+    ("survey", "Desk study and boring", "Bureau- en booronderzoek"),
+    ("other", "Other research", "Overig onderzoek"),
+]
+
+
+def reports_note(rs: list[dict]) -> dict:
+    """One note for a building: its first report by name, the others (up to two more) in the story."""
+    rs = sorted(rs, key=lambda r: r["year"])
+    cite = lambda r: f"{r['title']} ({', '.join(x for x in [r['authors'][0] if r['authors'] else '', r['year']] if x)})"
+    story = "Onderzoek op deze plek: " + "; ".join(cite(r) for r in rs[:3]) + (f" en {len(rs) - 3} meer" if len(rs) > 3 else "") + "."
+    return {"name": rs[0]["title"][:80], "name_nl": rs[0]["title"][:80], "story": story, "story_nl": story, "source": rs[0]["doi"]}
+
+
+if dans.available():
+    @layer(
+        id="reports", section="Archaeology", section_nl="Archeologie",
+        title="Research reports", title_nl="Onderzoeksrapporten", era="All periods", era_nl="Alle perioden",
+        text=(f"What {LABEL} learned by digging and measuring: excavations, watching briefs, borings and the building-history "
+              "studies of single houses. Every report is open at the DANS Data Station Archaeology, with its drawings and finds."),
+        text_nl=(f"Wat {LABEL} leerde door te graven en te meten: opgravingen, archeologische begeleidingen, boringen en de "
+                 "bouwhistorische studies van losse huizen. Elk rapport staat open in het DANS Data Station Archeologie, "
+                 "met tekeningen en vondsten."),
+        caveat="Reports with a coordinate mark the buildings within 20 metres; reports without one only when their title names the address.",
+        caveat_nl="Rapporten met een coördinaat kleuren de gebouwen binnen 20 meter; rapporten zonder coördinaat alleen als de titel het adres noemt.",
+        source=("DANS Data Station Archeologie", CFG["dans"]["url"]),
+        groups=REPORTS,
+    )
+    def reports():
+        rs, per = dans.rows(), {}
+        for i, bags in dans.panden().items():
+            for p in bags:
+                per.setdefault(p, []).append(rs[i])
+        out = {}
+        for p, found in per.items():
+            note = reports_note(found)
+            out[p] = [(g, note) for g in sorted({dans.kind(r) for r in found})]
+        return out
 
 
 # ---------- a theme's facets ----------
