@@ -356,6 +356,84 @@ if gemeentelijk.available():
         return out
 
 
+# ---------- the RCE Kennisbank ----------
+# The Kennisbank (kennis.cultureelerfgoed.nl) has a page for part of the national monuments (s00_fetch_kennisbank): a
+# short introduction, the features, for some a full article. Texts are the RCE's, re-usable under CC0 with the source named.
+
+KENNISBANK = [
+    ("article", "Article", "Artikel"),
+    ("intro", "Introduction", "Introductie"),
+    ("page", "Page without text yet", "Pagina zonder tekst"),
+]
+
+
+@cache
+def kennisbank() -> list[dict]:
+    f = Path(f"{RAW}/kennisbank.json")
+    return json.load(open(f, encoding="utf-8")) if f.exists() else []
+
+
+def kennisbank_group(r: dict) -> str:
+    return "article" if len(r["text"]) > 400 else "intro" if r["intro"] or len(r["text"]) > 80 else "page"
+
+
+def kennisbank_panden(r: dict) -> set[str]:
+    """The pand(en) of a page's monument: the register's links, else the page's address in the BAG addresses."""
+    found = set(monument_panden().get(str(r["nr"]), ()))
+    if found:
+        return found
+    m = re.match(r"^(.*?)\s+(\d+)\s*([A-Za-z]?)\b", r["address"] or "")
+    if m:
+        key = (m.group(1).lower().replace(" ", ""), int(m.group(2)), m.group(3).lower())
+        for a in json.load(open(f"{DATA}/raw/addresses.json", encoding="utf-8")):
+            if a["pandidentificatie"] and (a["openbare_ruimte"].lower().replace(" ", ""), a["huisnummer"],
+                                           (a["huisletter"] or "").lower()) == key:
+                found.add(a["pandidentificatie"])
+    if not found and r.get("wkt"):  # the register's own geometry: the buildings it touches, or a point within 12 m of one
+        import shapely
+        from pyproj import Transformer
+        to_rd = Transformer.from_crs(4326, 28992, always_xy=True)
+        g = shapely.transform(shapely.from_wkt(r["wkt"]), lambda xy: np.c_[to_rd.transform(xy[:, 0], xy[:, 1])])
+        b = buildings()
+        found = set(b.bag[b.geometry.distance(g) <= (12 if g.geom_type == "Point" else 1)])
+        if g.geom_type == "Point" and len(found) > 1:  # a point near several: the nearest only
+            found = {b.bag[b.geometry.distance(g).idxmin()]}
+    return found
+
+
+def kennisbank_note(r: dict) -> dict:
+    url = f"https://kennis.cultureelerfgoed.nl/index.php/Monumenten/{r['nr']}"
+    paras = [t for t in r["text"].split("\n") if len(t) > 60 and not t.endswith(".") or len(t) > 60]
+    lead = " ".join(x for x in [r["intro"], paras[0][:380].rsplit(" ", 1)[0] + "…" if paras and len(paras[0]) > 380 else (paras[0] if paras else "")] if x)
+    story = lead or r["features"].replace("\n", " ") or "Kennisbankpagina van de RCE."
+    if r["author"]:
+        story += f" (Auteur: {r['author']}, Kennisbank RCE.)"
+    name = r["name"] or r["address"] or f"Rijksmonument {r['nr']}"
+    return {"name": name, "name_nl": name, "story": story, "story_nl": story, "source": url}
+
+
+if kennisbank():
+    @layer(
+        id="kennisbank", section="Architecture", section_nl="Architectuur",
+        title="RCE Kennisbank", title_nl="Kennisbank RCE", era="All periods", era_nl="Alle perioden",
+        text=(f"The Rijksdienst voor het Cultureel Erfgoed keeps a knowledge bank beside the monument register. These are the "
+              f"national monuments of {LABEL} that have a page there, with an introduction or a full article."),
+        text_nl=(f"De Rijksdienst voor het Cultureel Erfgoed heeft naast het monumentenregister een kennisbank. Dit zijn de "
+                 f"rijksmonumenten in {LABEL} met een pagina daar, met een introductie of een volledig artikel."),
+        caveat="Only part of the monuments has a page; most pages are still without text of their own.",
+        caveat_nl="Maar een deel van de monumenten heeft een pagina; de meeste pagina's hebben nog geen eigen tekst.",
+        source=("Kennisbank, Rijksdienst voor het Cultureel Erfgoed (CC0)", "https://kennis.cultureelerfgoed.nl"),
+        groups=KENNISBANK,
+    )
+    def kennisbank_layer():
+        out = {}
+        for r in kennisbank():
+            g, note = kennisbank_group(r), kennisbank_note(r)
+            for p in kennisbank_panden(r):
+                out.setdefault(p, []).append((g, note))
+        return out
+
+
 # ---------- research reports ----------
 # The DANS Data Station Archaeology holds the municipality's excavation, survey and building-history reports (s00_fetch_dans).
 # A report marks the buildings near its coordinate, or the pand its title names.
