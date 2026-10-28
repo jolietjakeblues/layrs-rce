@@ -205,6 +205,14 @@ def main():
                 found.append(dict(bag=next(iter(bags)) if bags else None, rd=rd, address=address, person=p["pLabel"], url=p["article"],
                                   desc=p.get("desc"), born=(p.get("born") or "")[:4], died=(p.get("died") or "")[:4],
                                   links=int(p["links"]), quote=sentence.strip()[:400]))
+    # people named in the config with the sentence that places them: their house comes from a monument, at build time
+    for e in cfg.get("extra", []):
+        got = named_articles([e["title"]])
+        if got:
+            p = got[0]
+            found.append(dict(bag=None, rd=None, monument=e["monument"], address=e["address"], person=p["pLabel"], url=p["article"],
+                              desc=p.get("desc"), born=(p.get("born") or "")[:4], died=(p.get("died") or "")[:4],
+                              links=int(p["links"]), quote=e["quote"]))
     found.sort(key=lambda f: -f["links"])
     OUT.parent.mkdir(parents=True, exist_ok=True)
     # the people themselves, for the layer to look them up in the monument register's descriptions

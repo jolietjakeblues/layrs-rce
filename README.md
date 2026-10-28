@@ -118,5 +118,6 @@ Code: MIT (see [LICENSE](LICENSE)). Data keeps the licence of its source: 3D BAG
 BAG, BGT, NWB, RCE and Wikidata CC0; Wikipedia text CC BY-SA; Wikimedia Commons photos each under their own licence,
 credited in the app. The RCE Kennisbank texts fall under the RCE's copyright page (CC0, with the RCE named as the source;
 photos marked (c) and third-party content excepted, so no photo is taken from it). The DANS reports are linked, not
-copied: only their title, authors, year and periods are shown, and each report keeps its own licence at DANS. The LIWO flood
-maps come from Rijkswaterstaat; their licence is not yet confirmed here.
+copied: only their title, authors, year and periods are shown, and each report keeps its own licence at DANS. LIWO licence: Rijkswaterstaat makes flood data available for
+re-use, and CC0 is confirmed for other flood datasets (for example the ROR risk areas, on data.overheid.nl). The licence terms of
+the LIWO layer used here, Maximale waterdiepte Nederland, still have to be checked.
