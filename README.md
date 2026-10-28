@@ -45,6 +45,11 @@ main streets to label from afar, and the pipeline steps. The pipeline reads and 
 | `s14_search`, `s15_addresses` | | search index, an address per building |
 | `s16_register` | | the register's entry per monument for the building card: text, complex, RCE photos |
 | `s00_fetch_archeo`, `s17_archeo` | RCE Elastic projection and Referentienetwerk (ABR) | archaeology mode (optional: Amersfoort, Dordrecht, Zwolle): research areas under the city, one layer per ABR period, the deeper the older; archeologische complexen, grondsporen, vondsten; protected sites; a graph of ABR terms |
+| `s00_fetch_gemeentelijk` | Wikipedia's lists of municipal monuments (optional, per city) | the municipal monuments, placed on their panden by address and coordinate |
+| `s00_fetch_kennisbank` | RCE Kennisbank (kennis.cultureelerfgoed.nl), MediaWiki API and page source | the introductions and articles of the city's national monuments |
+| `s00_fetch_dans` | DANS Data Station Archaeology (Dataverse API) | the city's excavation, survey and building-history reports: layer, and boreholes in the archaeology mode |
+| `s00_fetch_residents` | Wikipedia (the city's list of natives) and Wikidata | deceased people whose article names the address where they lived or worked |
+| `s00_fetch_flood` | LIWO, Rijkswaterstaat (WCS) | maximum flood depth per probability class: the flood and flood-depth layers |
 
 ## Run it
 
@@ -111,4 +116,7 @@ thanked on every card and in About. Their texts and images are their own and are
 
 Code: MIT (see [LICENSE](LICENSE)). Data keeps the licence of its source: 3D BAG and 3D Basisvoorziening CC BY 4.0;
 BAG, BGT, NWB, RCE and Wikidata CC0; Wikipedia text CC BY-SA; Wikimedia Commons photos each under their own licence,
-credited in the app.
+credited in the app. The RCE Kennisbank texts fall under the RCE's copyright page (CC0, with the RCE named as the source;
+photos marked (c) and third-party content excepted, so no photo is taken from it). The DANS reports are linked, not
+copied: only their title, authors, year and periods are shown, and each report keeps its own licence at DANS. The LIWO flood
+maps come from Rijkswaterstaat; their licence is not yet confirmed here.

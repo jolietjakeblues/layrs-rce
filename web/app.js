@@ -1273,6 +1273,9 @@ function groupColor(g) {
   return GROUP_COLORS[g.layer.groups.findIndex(x => x.bit === g.bit)] || GROUP_COLORS[0];
 }
 
+// The RCE Kennisbank page of a building's monument, when a layer carries it as the source of its note.
+const kennisbankUrl = b => b.groups.map(g => g.layer.notes?.[b.bag]?.source).find(u => /^https:\/\/kennis\.cultureelerfgoed\.nl\//.test(u || ''));
+
 function residentsHtml(b, pinned) {
   const n = residentsLayer?.notes?.[b.bag];
   if (!n) return '';
@@ -1423,6 +1426,7 @@ function cardHtml(gid, pinned) {
   const sources = [
     wikiOf(w)?.url && link(wikiOf(w).url, t(wikiOf(w).lang === 'nl' ? 'Dutch Wikipedia' : 'Wikipedia')),
     b.mon && link(`https://monumentenregister.cultureelerfgoed.nl/monumenten/${b.mon}`, t('Monument register')),
+    kennisbankUrl(b) && link(kennisbankUrl(b), 'Kennisbank RCE'),
     THEME?.credit && b.mon && link(THEME.credit.search + encodeURIComponent([reg?.name || w?.label_nl || w?.label, reg?.place].filter(Boolean).join(' ')), 'Allemolens.nl'),
     ldvLink,
     link(`https://bagviewer.kadaster.nl/lvbag/bag-viewer/?objectId=${b.bag}`, t('BAG register')),
@@ -1431,7 +1435,7 @@ function cardHtml(gid, pinned) {
   const inLayers = b.groups.map(g => {
     const note = g.layer.notes?.[b.bag];
     return `<li><i style="background:${groupColor(g)}"></i><div><b>${esc(tr(g.layer, 'title'))}</b> <span>${esc(tr(g, 'label'))}</span>
-      ${pinned && note ? `<p>${esc(tr(note, 'story'))}${note.source ? ` ${link(note.source, /linkeddata\.cultureelerfgoed/.test(note.source) ? `${t('Source')} (LDV)` : t('Source'))}` : ''}</p>` : ''}</div></li>`;
+      ${pinned && note ? `<p>${esc(tr(note, 'story'))}${note.source ? ` ${link(note.source, /linkeddata\.cultureelerfgoed/.test(note.source) ? `${t('Source')} (LDV)` : /kennis\.cultureelerfgoed/.test(note.source) ? 'Kennisbank RCE' : t('Source'))}` : ''}</p>` : ''}</div></li>`;
   }).join('');
   const regHtml = pinned && reg?.text ? `<section class="register"><h4>${t('From the register')}</h4>
       ${reg.complex ? `<p class="why">${t('Part of the complex')} ${link(reg.complex.url, reg.complex.name || '')}${

@@ -11,6 +11,7 @@
   "roofs_within": 1100,
   "suspect_years": [],
   "flood": true,
+  "kennisbank": true,
   "residents": {"list": "Lijst van Dordtenaren"},
   "dans": {
     "q": "Dordrecht",
@@ -43,7 +44,7 @@
             "Dubbeldamseweg", "Brouwersdijk", "Krispijnseweg", "Noordendijk", "Oranjelaan", "Amstelwijckweg",
             "Zuidendijk", "Mijlweg", "Admiraal de Ruyterweg", "Karel Lotsylaan", "Overkampweg", "Smitsweg"],
   "steps": ["s00_fetch_boundary", "s00_fetch_3dbag", "s00_fetch_3dbv", "s00_fetch_water", "s00_fetch_flood", "s00_fetch_addresses",
-            "s00_fetch_energy", "s00_fetch_rce", "s00_fetch_gemeentelijk", "s00_fetch_dans", "s00_fetch_residents", "s00_fetch_archeo", "s00_fetch_wikidata", "s01_load", "s02_attributes",
+            "s00_fetch_energy", "s00_fetch_rce", "s00_fetch_gemeentelijk", "s00_fetch_kennisbank", "s00_fetch_dans", "s00_fetch_residents", "s00_fetch_archeo", "s00_fetch_wikidata", "s01_load", "s02_attributes",
             "s01c_roofs", "s01d_spires", "s05_layers", "s07_labels", "s10_commons", "s06_wiki", "s17_archeo", "s03_tiles",
             "s04_water", "s13_graph",
             "s14_search", "s15_addresses", "s16_register"]
