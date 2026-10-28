@@ -434,6 +434,56 @@ if kennisbank():
         return out
 
 
+# ---------- walks ----------
+# A walk is a story told by a few places (the config's "walks"): every stop is a monument, an address, or the building nearest
+# the corner of two streets, with a sentence and its source. It is a layer whose notes are the stops, so the viewer can make a
+# walk of it.
+
+def _stop_panden(stop: dict) -> set[str]:
+    if stop.get("monument"):
+        found = set(monument_panden().get(str(stop["monument"]), ()))
+        return {sorted(found)[0]} if found else set()
+    if stop.get("address"):
+        m = re.match(r"^(.*?)\s+(\d+)\s*([A-Za-z]?)$", stop["address"])
+        key = (m.group(1).lower(), int(m.group(2)), m.group(3).lower())
+        for a in json.load(open(f"{DATA}/raw/addresses.json", encoding="utf-8")):
+            if a["pandidentificatie"] and (a["openbare_ruimte"].lower(), a["huisnummer"], (a["huisletter"] or "").lower()) == key:
+                return {a["pandidentificatie"]}
+        return set()
+    if stop.get("near"):  # the building nearest the place where the streets meet
+        from shapely.ops import nearest_points
+
+        b, hits = buildings().set_index("bag"), []
+        for street in stop["near"]:
+            bags = {a["pandidentificatie"] for a in json.load(open(f"{DATA}/raw/addresses.json", encoding="utf-8"))
+                    if a["openbare_ruimte"] == street and a["pandidentificatie"] in set(b.index)}
+            hits.append(b.geometry[sorted(bags)].union_all())
+        p1, p2 = nearest_points(hits[0], hits[1])
+        corner = p1.union(p2).centroid
+        return {b.geometry.distance(corner).idxmin()}
+    return set()
+
+
+def _walk_layer(w: dict):
+    key, en, nl = w["group"]
+
+    @layer(id=w["id"], section=w["section"], section_nl=w["section_nl"], title=w["title"], title_nl=w["title_nl"],
+           era=w["era"], era_nl=w["era_nl"], text=w["text"], text_nl=w["text_nl"], caveat=w.get("caveat"),
+           caveat_nl=w.get("caveat_nl"), source=tuple(w["source"]), groups=[(key, en, nl)])
+    def walk():
+        out = {}
+        for s in w["stops"]:
+            note = {"name": s["name"], "name_nl": s.get("name_nl", s["name"]), "story": s["story"], "story_nl": s["story"], "source": s["source"]}
+            for p in _stop_panden(s):
+                out[p] = (key, note)
+        return out
+    return walk
+
+
+for _w in CFG.get("walks", []):
+    _walk_layer(_w)
+
+
 # ---------- research reports ----------
 # The DANS Data Station Archaeology holds the municipality's excavation, survey and building-history reports (s00_fetch_dans).
 # A report marks the buildings near its coordinate, or the pand its title names.
@@ -606,6 +656,12 @@ if _residents_file().exists() and json.load(open(_residents_file(), encoding="ut
             hit = gpd.sjoin(pts, b[["bag", "geometry"]], predicate="within").drop_duplicates("i").set_index("i").bag
             for i, r in enumerate(at_point):
                 r["bag"] = hit.get(i)
+        by_nr = {str(k["nr"]): k for k in kennisbank()}
+        for r in rows:  # a person placed by a monument (the config's extras): its pand, as a Kennisbank page finds it
+            if not r.get("bag") and r.get("monument"):
+                page = by_nr.get(str(r["monument"]))
+                found = (kennisbank_panden(page) if page else set()) | set(monument_panden().get(str(r["monument"]), ()))
+                r["bag"] = sorted(found)[0] if found else None
         out = {}
         for r in rows:
             if not r.get("bag"):

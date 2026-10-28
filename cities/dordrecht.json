@@ -12,7 +12,39 @@
   "suspect_years": [],
   "flood": true,
   "kennisbank": true,
-  "residents": {"list": "Lijst van Dordtenaren"},
+  "residents": {
+    "list": "Lijst van Dordtenaren",
+    "extra": [
+      {"title": "Simon van Gijn", "monument": "13565", "address": "Nieuwe Haven 29",
+       "quote": "Zij vestigden zich in het woonhuis op de Nieuwe Haven nu museum Huis Van Gijn."}
+    ]
+  },
+  "walks": [
+    {
+      "id": "synod", "section": "Faith and community", "section_nl": "Geloof en gemeenschap",
+      "title": "Synod of Dort 1618–19", "title_nl": "Synode van Dordrecht 1618–19", "era": "1618–1619", "era_nl": "1618–1619",
+      "text": "From 13 November 1618 to 29 May 1619 delegates from the Republic and from Reformed churches abroad met in Dordrecht to settle the quarrel between Remonstrants and Contra-Remonstrants. Follow where they arrived, where they worshipped and where they sat.",
+      "text_nl": "Van 13 november 1618 tot 29 mei 1619 vergaderden in Dordrecht afgevaardigden uit de Republiek en uit buitenlandse gereformeerde kerken om de twist tussen remonstranten en contraremonstranten te beslechten. Volg waar ze aankwamen, waar ze de dienst bijwoonden en waar ze zaten.",
+      "caveat": "The Kloveniersdoelen, where the sessions were held, was pulled down in 1857; its stop marks the building nearest the corner of the Stek and the Doelstraat, which is not that building.",
+      "caveat_nl": "De Kloveniersdoelen, waar de zittingen waren, is in 1857 gesloopt; de stop op die plek wijst het gebouw aan dat het dichtst bij de hoek van het Stek en de Doelstraat staat, en dat is dit gebouw niet.",
+      "source": ["Synode van Dordrecht, Wikipedia", "https://nl.wikipedia.org/wiki/Synode_van_Dordrecht"],
+      "group": ["stop", "A place in the story", "Een plek in het verhaal"],
+      "stops": [
+        {"name": "Groothoofd and Groothoofdspoort", "name_nl": "Groothoofd en Groothoofdspoort", "monument": "13310",
+         "story": "Volgens de wandeling 'Loop door het Dordrecht van 1618' kwamen bezoekers per schip aan op de kade van het Groothoofd, liepen onder de Groothoofdspoort door en via de Wijnstraat naar de Kloveniersdoelen, waar de Grote Vergaderingen plaatsvonden.",
+         "source": "https://www.monumentenzorgdordrecht.nl/bouwhistorische-rapporten/loop-door-het-dordrecht-van-1618"},
+        {"name": "Grote Kerk", "monument": "13417",
+         "story": "Voordat de eerste zitting begon, vond hier op 13 november 1618 een kerkdienst plaats.",
+         "source": "https://nl.wikipedia.org/wiki/Synode_van_Dordrecht"},
+        {"name": "Kloveniersdoelen (gesloopt in 1857)", "near": ["Doelstraat", "Stek"],
+         "story": "Op de hoek van het Stek en de Doelstraat stond de Kloveniersdoelen, het grootste wereldlijke gebouw van Dordrecht. In de bovenzaal van het voorhuis aan de Doelstraat hield de synode haar 180 zittingen. In 1857 is het gebouw gesloopt; het gebouw dat hier nu staat is het niet. Een plaquette in de Doelstraat herinnert aan de plek.",
+         "source": "https://nl.wikipedia.org/wiki/Kloveniersdoelen_(Dordrecht)"},
+        {"name": "Dordrechts Museum", "address": "Museumstraat 40",
+         "story": "Van de Kloveniersdoelen is bijna niets bewaard gebleven. In het Dordrechts Museum staat nog de schoorsteenmantel met klassieke zwaardvechters, de 'Vechtende Mannen-schouw'.",
+         "source": "https://nl.wikipedia.org/wiki/Kloveniersdoelen_(Dordrecht)"}
+      ]
+    }
+  ],
   "dans": {
     "q": "Dordrecht",
     "url": "https://archaeology.datastations.nl/dataverse/root?q=Dordrecht"
