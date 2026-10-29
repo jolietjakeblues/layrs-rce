@@ -195,7 +195,12 @@ let LANG = (() => {
   try { const s = localStorage.getItem('lang'); if (s === 'nl' || s === 'en') return s; } catch {}
   return navigator.language?.startsWith('nl') ? 'nl' : 'en';
 })();
-const t = s => (LANG === 'nl' && NL_UI[s]) || s;
+// A municipality of villages is not 'the city': "kind": "municipality" in the city's config words the interface so.
+const place = (s, lang = LANG) => config.kind !== 'municipality' ? s : lang === 'nl'
+  ? s.replace(/\bstad\b/g, 'gemeente').replace(/\bStad\b/g, 'Gemeente')
+  : s.replace(/\bcity\b/g, 'municipality').replace(/\bCity\b/g, 'Municipality');
+const t = s => place((LANG === 'nl' && NL_UI[s]) || s);
+{ const ld = document.getElementById('loading'); if (ld?.firstChild) ld.firstChild.textContent = t('Building the city') + ' '; }
 const tr = (o, k) => (LANG === 'nl' && o?.[k + '_nl']) || o?.[k];
 const fmtLocale = () => LANG === 'nl' ? 'nl-NL' : 'en';
 const periods = config.periods;
@@ -266,7 +271,7 @@ document.querySelector('.masthead h1').childNodes[1].textContent = config.label;
   }
   // the archaeology mode's own section; setArcheo() moves it to the top while the city is turned over
   if (config.archeology) {
-    en.insertAdjacentHTML('beforeend', `<section class="about-arch"><h3>Under the ground: archaeology</h3>
+    en.insertAdjacentHTML('beforeend', place(`<section class="about-arch"><h3>Under the ground: archaeology</h3>
       <p>The Archaeology switch turns the city over. Under the ground lies every archaeological research area
       (onderzoeksgebied) once for each period its finds and features date from: the deeper, the older, from Recent down
       to the Palaeolithic. Depth stands for time, not for metres below the surface. Click a surface for its
@@ -276,8 +281,8 @@ document.querySelector('.masthead h1').childNodes[1].textContent = config.label;
       <li>Periods, types and materials: terms of the Referentienetwerk (RN2) and the Archeologisch Basisregister (ABR),
       each linked to its URI; the periods' years come from the ABR.</li>
       <li>Protected sites: the archaeological national monuments in the monument register.</li></ul>
-      <p>An object spanning more than three periods counts as undated; an area without dated finds is not shown.</p></section>`);
-    nl.insertAdjacentHTML('beforeend', `<section class="about-arch"><h3>Onder de grond: archeologie</h3>
+      <p>An object spanning more than three periods counts as undated; an area without dated finds is not shown.</p></section>`, 'en'));
+    nl.insertAdjacentHTML('beforeend', place(`<section class="about-arch"><h3>Onder de grond: archeologie</h3>
       <p>De knop Archeologie draait de stad om. Onder de grond ligt elk archeologisch onderzoeksgebied één keer voor
       elke periode waaruit de vondsten en grondsporen dateren: hoe dieper, hoe ouder, van Recent tot het Paleolithicum.
       De diepte staat voor tijd, niet voor meters onder het maaiveld. Klik op een vlak voor de archeologische complexen,
@@ -288,7 +293,7 @@ document.querySelector('.masthead h1').childNodes[1].textContent = config.label;
       (ABR), elk met een link naar zijn URI; de jaartallen van de perioden komen uit het ABR.</li>
       <li>Beschermde terreinen: de archeologische rijksmonumenten uit het monumentenregister.</li></ul>
       <p>Een object dat meer dan drie perioden beslaat, telt als niet te dateren; een gebied zonder gedateerde vondsten
-      staat er niet in.</p></section>`);
+      staat er niet in.</p></section>`, 'nl'));
   }
   // the city's own Wikipedia article (pipeline/s06_wiki.py), after the first lines
   fetch(D + 'about.json').then(r => r.json()).then(a => {
@@ -297,7 +302,7 @@ document.querySelector('.masthead h1').childNodes[1].textContent = config.label;
     for (const [lang, el, more] of [['en', en, 'Read more on Wikipedia'], ['nl', nl, 'Lees verder op Wikipedia']]) {
       const w = a[lang] || a.nl || a.en;
       if (!w) continue;
-      el.querySelector('h2').nextElementSibling.insertAdjacentHTML('afterend', `<h3>${config.theme ? (lang === 'nl' ? `Over ${config.theme.noun[3]}` : `About ${config.theme.noun[1]}`) : lang === 'nl' ? 'Over de stad' : 'About the city'}</h3>
+      el.querySelector('h2').nextElementSibling.insertAdjacentHTML('afterend', `<h3>${config.theme ? (lang === 'nl' ? `Over ${config.theme.noun[3]}` : `About ${config.theme.noun[1]}`) : place(lang === 'nl' ? 'Over de stad' : 'About the city', lang)}</h3>
         <p lang="${a[lang] ? lang : 'nl'}">${esc(w.extract)} <a href="${esc(w.url)}" target="_blank" rel="noopener">${more}</a></p>`);
     }
   }).catch(() => {});
@@ -499,17 +504,18 @@ function ringTexture() {
   x.strokeStyle = '#fff'; x.lineWidth = 6; x.beginPath(); x.arc(32, 32, 27, 0, 7); x.stroke();
   return new THREE.CanvasTexture(c);
 }
-function textSprite(text) {
-  const c = document.createElement('canvas'), x = c.getContext('2d'), px = 40;
-  x.font = `500 ${px}px system-ui, sans-serif`;
+function textSprite(text, strong = false) {
+  const c = document.createElement('canvas'), x = c.getContext('2d'), px = strong ? 48 : 40;
+  const font = `${strong ? 600 : 500} ${px}px system-ui, sans-serif`;
+  x.font = font;
   c.width = Math.ceil(x.measureText(text).width) + 16; c.height = px + 16;
-  x.font = `500 ${px}px system-ui, sans-serif`;
+  x.font = font;
   x.textAlign = 'center'; x.textBaseline = 'middle';
-  x.lineWidth = 8; x.strokeStyle = 'rgba(244,243,239,0.9)'; x.strokeText(text, c.width / 2, c.height / 2);
-  x.fillStyle = '#8a867c'; x.fillText(text, c.width / 2, c.height / 2);
+  x.lineWidth = strong ? 10 : 8; x.strokeStyle = 'rgba(244,243,239,0.9)'; x.strokeText(text, c.width / 2, c.height / 2);
+  x.fillStyle = strong ? '#3d4247' : '#8a867c'; x.fillText(text, c.width / 2, c.height / 2);
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), sizeAttenuation: false,
     depthTest: false, transparent: true }));
-  const h = 0.016;
+  const h = strong ? 0.024 : 0.016;
   s.scale.set(h * c.width / c.height, h, 1);
   s.renderOrder = 9;
   return s;
@@ -966,6 +972,23 @@ function updateLabels(dist) {
       if (show) l.mesh.scale.set(w, h, 1);
     }
   }
+}
+
+// ---------- Villages ----------
+// The names of the villages and hamlets (pipeline/s08_places.py), over the map from a distance of about a kilometre out
+// to the whole municipality, so one can tell where the kernen lie; the street names take over close up.
+const villageGroup = new THREE.Group();
+scene.add(villageGroup);
+const villages = (config.places || []).map(p => {
+  const s = textSprite(p.name, true);
+  s.position.set(p.x, 40, p.z);
+  s.visible = false;
+  villageGroup.add(s);
+  return s;
+});
+function stepVillages(dist) {
+  const o = ARCH.on ? 0 : Math.min(1, Math.max(0, (dist - 700) / 900)) * Math.min(1, Math.max(0, (30000 - dist) / 10000));
+  for (const s of villages) { s.material.opacity = o; s.visible = o > 0; }
 }
 
 // ---------- Shared uniforms ----------
@@ -2634,6 +2657,7 @@ renderer.setAnimationLoop(now => {
   const dist = camera.position.distanceTo(controls.target);
   uniforms.uFog.value.set(dist * 1.6, dist * 4);
   if (frame % 6 === 0) updateLabels(dist);
+  stepVillages(dist);
   if (playing) {
     if (now < playHold) {
       // resting at an end: the last flights settle

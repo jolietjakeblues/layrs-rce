@@ -7,6 +7,7 @@ history, from national open data only. Or one kind of monument across a province
 - Maastricht: https://layrs-maastricht.pages.dev
 - Dordrecht: https://layrs-dordrecht.pages.dev (with an archaeology mode)
 - Zwolle: https://layrs-zwolle.pages.dev (with an archaeology mode)
+- Voorst (Twello and its other villages): https://main.layrs-voorst.pages.dev (with an archaeology mode and the province's landscape layers)
 - Mills in Zuid-Holland: https://layrs-molens-zh.pages.dev (a theme, see below)
 
 - Zie ook de Gouda versie van @coret https://www.goudatijdmachine.nl/layrs/
@@ -79,6 +80,10 @@ bottom button of those three flies back to the overview the map opens on. The ti
 Copy a file in `cities/`, set `label`, `gemeentecode` (the four digits BAG ids start with), `origin` (RD New),
 `starts`, `home`, `periods` and `tier1`, and run the pipeline with its name. The register's name for the municipality
 is `label`, or `gemeentenaam` when it differs. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+A municipality of villages rather than a city (Voorst) sets `"kind": "municipality"`, so the viewer says 'municipality'
+('gemeente') where it would say 'city' ('stad'), and runs `s08_places`: the BAG's woonplaatsen with enough buildings are
+named on the map from a distance, with a start view (`home`) wide enough to show them all.
 
 ## A theme instead of a city
 
