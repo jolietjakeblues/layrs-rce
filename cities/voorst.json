@@ -1,5 +1,6 @@
 {
   "label": "Voorst",
+  "kind": "municipality",
   "gemeentecode": "0285",
   "wikipedia": {"nl": "Voorst (gemeente)", "en": "Voorst"},
   "origin": [204037.0, 472269.0],
@@ -8,7 +9,7 @@
     ["Huis Duistervoorde", "Huis Duistervoorde", 203043.0, 471448.0],
     ["Stationsstraat, Twello", "Stationsstraat, Twello", 203866.0, 472368.0]
   ],
-  "home": {"x": -500, "z": 500, "azimuth": 200, "elevation": 40, "span": 9000},
+  "home": {"x": -1300, "z": 3400, "azimuth": 20, "elevation": 40, "span": 26000},
   "roofs_within": 1100,
   "suspect_years": [],
   "flood": true,
@@ -37,7 +38,7 @@
             "Dorpsstraat", "Marktplein", "Stationsstraat", "Kerklaan", "Middendijk", "Hoofdweg", "Wijkseweg", "Molenweg"],
   "steps": ["s00_fetch_boundary", "s00_fetch_3dbag", "s00_fetch_3dbv", "s00_fetch_water", "s00_fetch_flood", "s00_fetch_landschap", "s00_fetch_addresses",
             "s00_fetch_energy", "s00_fetch_rce", "s00_fetch_gemeentelijk", "s00_fetch_kennisbank", "s00_fetch_archeo", "s00_fetch_wikidata", "s01_load", "s02_attributes",
-            "s01c_roofs", "s01d_spires", "s05_layers", "s07_labels", "s10_commons", "s06_wiki", "s17_archeo", "s03_tiles",
+            "s01c_roofs", "s01d_spires", "s05_layers", "s07_labels", "s08_places", "s10_commons", "s06_wiki", "s17_archeo", "s03_tiles",
             "s04_water", "s13_graph",
             "s14_search", "s15_addresses", "s16_register"]
 }
