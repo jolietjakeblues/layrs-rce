@@ -623,6 +623,133 @@ if FLOOD_DIR.joinpath("kaart5.tif").exists() and all((FLOOD_DIR / f"kaart{k}.tif
         return out
 
 
+# ---------- landscape ----------
+# The province of Gelderland's maps (s00_fetch_landschap): the landscape types around 1850 and now, and the areas of
+# earth-science value. A building takes the landscape its centre lies in, so the layers read as what each building stands on.
+
+LANDSCAPE_DIR = Path(f"{DATA}/raw/landschap")
+GELDERLAND_1850 = ("Landschapstypen 1850, Provincie Gelderland",
+                   "https://data.overheid.nl/dataset/0d51aaf1-9f4e-4e06-acd2-2da11dc4d44e")
+GELDERLAND_NU = ("Landschapstypen 19nu, Provincie Gelderland",
+                 "https://data.overheid.nl/dataset/9705cdce-2418-44a6-bf88-eafffb6ddbee")
+GELDERLAND_AARD = ("Aardkundig waardevolle gebieden, Provincie Gelderland",
+                   "https://data.overheid.nl/dataset/40d01ba4-6af6-4856-a89c-81177399e1d3")
+
+LANDSCAPE_1850 = [
+    # (group, label, label_nl, type codes of the province's map)
+    ("kampen", "Old fields among hedges (kampen)", "Kampenlandschap", {"KA"}),
+    ("broek", "Reclaimed wet heath and fen (broek)", "Broekontginningen", {"BR", "BG"}),
+    ("oever", "River levees and ridges", "Oeverwallen en stroomruggen", {"OE"}),
+    ("kom", "Floodplain basins (kommen)", "Kommenlandschap", {"KO"}),
+    ("uiter", "Floodplains", "Uiterwaarden", {"UI"}),
+    ("heide", "Heath and woodland", "Heide en bos", {"HE", "HD", "BO"}),
+    ("hooi", "Hay meadows", "Hooilanden", {"HO"}),
+    ("es", "Open arable fields (essen)", "Essenlandschap", {"ES"}),
+]
+LANDSCAPE_NU = [
+    ("broek", "Reclaimed wet heath and fen (broek)", "Natte heide- en broekontginningen", {"NO"}),
+    ("oever", "River levees and ridges", "Oeverwallen en stroomruggen", {"OE"}),
+    ("kom", "Floodplain basins (kommen)", "Kommenlandschap", {"KO"}),
+    ("kampen", "Old fields among hedges (kampen)", "Kampenlandschap", {"KA"}),
+    ("uiter", "Floodplains", "Uiterwaarden", {"UI"}),
+    ("landgoed", "Country estates and woods", "Landgoederen en bos", {"LA", "BO"}),
+    ("kom_bebouwd", "Built-up areas", "Bebouwde kom", {"ZZ"}),
+    ("overig", "Other landscapes", "Overig landschap", set()),  # every code the groups above do not take
+]
+
+
+def _landscape_by_group(name: str, groups: list) -> dict[str, str]:
+    f = LANDSCAPE_DIR / f"{name}.geojson"
+    if not f.exists():
+        return {}
+    g = gpd.read_file(f).set_crs(28992, allow_override=True)
+    of = {code: key for key, _, _, codes in groups for code in codes}
+    catch_all = next((key for key, _, _, codes in groups if not codes), None)
+    g["group"] = g.type_code.map(lambda c: of.get(c, catch_all))
+    return within(g[g.group.notna()], "group")
+
+
+if (LANDSCAPE_DIR / "landschapstypen_1850.geojson").exists():
+    @layer(
+        id="landscape-1850", section="Landscape", section_nl="Landschap", era="Before 1850", era_nl="Vóór 1850",
+        title="Landscape in 1850", title_nl="Landschap in 1850",
+        text=(f"What each building of {LABEL} stands on: the landscape the province maps for around 1850, before the "
+              "large reclamations, the drainage and the new roads. Old fields among hedges, reclaimed fen, the "
+              "floodplain along the river, heath."),
+        text_nl=(f"Waar elk gebouw in {LABEL} op staat: het landschap dat de provincie voor omstreeks 1850 in kaart "
+                 "brengt, vóór de grote ontginningen, de ontwatering en de nieuwe wegen. Kampen met houtwallen, "
+                 "ontgonnen broek, de uiterwaarden langs de rivier, heide."),
+        caveat=("A coarse provincial map drawn up for the regional plan of 1996: it says in which landscape type the "
+                "centre of a building lies, not what stood on the spot in 1850. Landscape types not in the groups "
+                "are left out."),
+        caveat_nl=("Een grove provinciale kaart, opgesteld voor het streekplan van 1996: ze zegt in welk landschapstype "
+                   "het midden van een gebouw ligt, niet wat er in 1850 op die plek stond. Landschapstypen die niet "
+                   "in de groepen zitten, vallen weg."),
+        source=GELDERLAND_1850,
+        groups=[(k, en, nl) for k, en, nl, _ in LANDSCAPE_1850],
+    )
+    def landscape_1850():
+        return _landscape_by_group("landschapstypen_1850", LANDSCAPE_1850)
+
+if (LANDSCAPE_DIR / "landschapstypen_nu.geojson").exists():
+    @layer(
+        id="landscape-now", section="Landscape", section_nl="Landschap", era="Today", era_nl="Nu",
+        title="Landscape today", title_nl="Landschap nu",
+        text=(f"The landscape types of the province in and around {LABEL} as they are now: where the villages, the "
+              "country estates, the woods and the reclaimed land lie."),
+        text_nl=(f"De landschapstypen van de provincie in en rond {LABEL} zoals ze nu zijn: waar de dorpen, de "
+                 "landgoederen, de bossen en het ontgonnen land liggen."),
+        caveat=("A coarse provincial map of the situation in the 1990s; most buildings of a village lie in 'built-up "
+                "areas'. A building gets the type its centre lies in."),
+        caveat_nl=("Een grove provinciale kaart van de situatie in de jaren negentig; de meeste gebouwen van een dorp "
+                   "liggen in de 'bebouwde kom'. Een gebouw krijgt het type waarin zijn midden ligt."),
+        source=GELDERLAND_NU,
+        groups=[(k, en, nl) for k, en, nl, _ in LANDSCAPE_NU],
+    )
+    def landscape_now():
+        return _landscape_by_group("landschapstypen_nu", LANDSCAPE_NU)
+
+EARTH_VALUE = [
+    ("internationaal", "Of international importance", "Van internationaal belang"),
+    ("nationaal", "Of national importance", "Van nationaal belang"),
+    ("provinciaal", "Of provincial importance", "Van provinciaal belang"),
+    ("regionaal", "Of regional importance", "Van regionaal belang"),
+]
+
+if (LANDSCAPE_DIR / "aardkundig.geojson").exists():
+    @layer(
+        id="earth-science", section="Landscape", section_nl="Landschap", era="Before the first farms", era_nl="Van vóór de eerste boeren",
+        title="Earth-science values", title_nl="Aardkundige waarden",
+        text=(f"Parts of {LABEL} are valued for how the ground itself came to be: river ridges, floodplains, old valleys "
+              "and rare soils. Every building inside such an area is coloured by how important the province rates it; "
+              "its card says what makes the ground special."),
+        text_nl=(f"Delen van {LABEL} zijn waardevol om hoe de grond zelf is ontstaan: stroomruggen, uiterwaarden, oude "
+                 "dalen en zeldzame bodems. Elk gebouw binnen zo'n gebied heeft de kleur van het belang dat de provincie "
+                 "eraan toekent; op de kaart staat wat de grond bijzonder maakt."),
+        caveat=("Provincial areas, drawn coarsely; every building whose centre lies inside gets the area's rating. The "
+                "building is not what is valued."),
+        caveat_nl=("Provinciale gebieden, grof getekend; elk gebouw waarvan het midden erbinnen ligt, krijgt de waardering "
+                   "van het gebied. Het gebouw zelf is niet wat gewaardeerd wordt."),
+        source=GELDERLAND_AARD,
+        groups=EARTH_VALUE,
+    )
+    def earth_science():
+        g = gpd.read_file(LANDSCAPE_DIR / "aardkundig.geojson").set_crs(28992, allow_override=True)
+        b = buildings()
+        pts = gpd.GeoDataFrame({"bag": b.bag}, geometry=b.geometry.centroid, crs=28992)
+        j = gpd.sjoin(pts, g, predicate="within")
+        out = {}
+        for _, r in j.iterrows():
+            key = next((k for k, *_ in EARTH_VALUE if k in (r.waardering or "")), None)
+            if not key:
+                continue
+            about = short(r.beschrijvi or "", 260) if r.beschrijvi else ""
+            what = " ".join(x for x in (f"{r.toelichtin}." if r.toelichtin else "", about[:1].upper() + about[1:]) if x)
+            link = r.url_verkla if str(r.url_verkla or "").startswith("http") else GELDERLAND_AARD[1]
+            out.setdefault(r.bag, []).append((key, {"story": what, "story_nl": what, "source": link}))
+        return out
+
+
 # ---------- who lived here ----------
 # Well-known residents (s00_fetch_residents): deceased people whose Dutch Wikipedia article names the address where they
 # lived or worked. The viewer gives this layer a panel of its own, a list of people that flies to the house.

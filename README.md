@@ -50,6 +50,7 @@ main streets to label from afar, and the pipeline steps. The pipeline reads and 
 | `s00_fetch_dans` | DANS Data Station Archaeology (Dataverse API) | the city's excavation, survey and building-history reports: layer, and boreholes in the archaeology mode |
 | `s00_fetch_residents` | Wikipedia (the city's list of natives) and Wikidata | deceased people whose article names the address where they lived or worked |
 | `s00_fetch_flood` | LIWO, Rijkswaterstaat (WCS) | maximum flood depth per probability class: the flood and flood-depth layers |
+| `s00_fetch_landschap` (optional, Gelderland) | Province of Gelderland, open geodata (WFS) | landscape types around 1850 and now, and the areas of earth-science value: the three landscape layers |
 
 ## Run it
 
@@ -120,4 +121,7 @@ credited in the app. The RCE Kennisbank texts fall under the RCE's copyright pag
 photos marked (c) and third-party content excepted, so no photo is taken from it). The DANS reports are linked, not
 copied: only their title, authors, year and periods are shown, and each report keeps its own licence at DANS. LIWO licence: Rijkswaterstaat makes flood data available for
 re-use, and CC0 is confirmed for other flood datasets (for example the ROR risk areas, on data.overheid.nl). The licence terms of
-the LIWO layer used here, Maximale waterdiepte Nederland, still have to be checked.
+the LIWO layer used here, Maximale waterdiepte Nederland, still have to be checked. The Gelderland landscape types
+(1850 and now) are public domain (data.overheid.nl). The earth-science areas (aardkundig waardevolle gebieden) are listed
+there with an unknown licence and restricted access rights, although the Nationaal Georegister gives no restrictions of use:
+ask the province before publishing that layer, or leave `aardkundig` out of `landschap` in the city's config.

@@ -36,8 +36,9 @@ def panden() -> dict[str, list[str]]:
     b = gpd.read_parquet(f"{DATA}/buildings.parquet", columns=["identificatie", "geometry"])
     b["bag"] = b.identificatie.str.slice(-16)
     to_rd = Transformer.from_crs(4326, 28992, always_xy=True)
-    xs, ys = to_rd.transform([r["lon"] for r in rs], [r["lat"] for r in rs])
-    pts = gpd.GeoSeries(gpd.points_from_xy(xs, ys), crs=28992)
+    placed = [i for i, r in enumerate(rs) if r["lat"] is not None and r["lon"] is not None]  # some list rows have no coordinate
+    xs, ys = to_rd.transform([rs[i]["lon"] for i in placed], [rs[i]["lat"] for i in placed])
+    pts = gpd.GeoSeries(gpd.points_from_xy(xs, ys), crs=28992, index=placed)
     geom = dict(zip(b.bag, b.geometry))
 
     idx = {}
@@ -47,7 +48,7 @@ def panden() -> dict[str, list[str]]:
                 a["pandidentificatie"])
 
     # nearest building to every coordinate, for the monuments the address does not place
-    near = gpd.sjoin_nearest(gpd.GeoDataFrame({"i": range(len(rs))}, geometry=pts), b[["bag", "geometry"]],
+    near = gpd.sjoin_nearest(gpd.GeoDataFrame({"i": placed}, geometry=pts.values, crs=28992), b[["bag", "geometry"]],
                              max_distance=NEAR_POINT, distance_col="d").drop_duplicates("i").set_index("i").bag
 
     out = {}
@@ -57,7 +58,10 @@ def panden() -> dict[str, list[str]]:
         if m:
             street, n, letter = m.group(1).lower(), int(m.group(2)), m.group(3).lower()
             found = idx.get((street, n, letter)) or idx.get((street, n, "")) or set()
-        found = [p for p in found if p in geom and geom[p].distance(pts[i]) <= NEAR_ADDRESS]
+        if i in pts.index:
+            found = [p for p in found if p in geom and geom[p].distance(pts[i]) <= NEAR_ADDRESS]
+        else:  # no coordinate to check against: take the address only when it names a single pand
+            found = [p for p in found if p in geom] if len(found) == 1 else []
         if not found and i in near.index:
             found = [near[i]]
         if found:

@@ -6,23 +6,23 @@ Onderwerp: Re: Arjan, kijk hier eens naar. Puur ter info. Mooi prototype van een
 
 Hoi Arjan,
 
-Dank, goede vragen.
+Leuk dat je er zo naar kijkt. Je twee vragen:
 
-**Kennisbankpagina's.** Dat kan, en voor Dordrecht heb ik het al toegevoegd als aparte laag: "Kennisbank RCE". Dezelfde link: https://layrs-dordrecht.pages.dev
+De kennisbankpagina's: kan, en voor Dordrecht zit het er al in als aparte laag ("Kennisbank RCE"), zelfde link: https://layrs-dordrecht.pages.dev. Op elk gebouw met een pagina staat nu een linkje naar de Kennisbank.
 
-Eerlijk over de omvang: van de 879 Dordtse rijksmonumenten hebben er 128 een pagina in de Kennisbank. Daarvan hebben er 2 een volledig artikel (Huis van Gijn en de Boterbeurs) en 15 een korte introductie. De overige pagina's zijn skeletpagina's met wat er al in het register staat. De koppeling werkt dus, maar voor Dordrecht is de Kennisbank zelf nog dun gevuld. Hoe meer pagina's tekst krijgen, hoe meer je ervan op de kaart ziet.
+Wel even realistisch: van de 879 Dordtse rijksmonumenten hebben er 128 een pagina, en daarvan hebben er maar 2 een echt artikel (Huis van Gijn en de Boterbeurs) en 15 een korte introductie. De rest is vooral wat er al in het register staat. De koppeling werkt dus prima, maar je ziet pas echt wat als de Kennisbank verder gevuld is.
 
-Technisch: de pagina's komen via de API van de Kennisbank (titels) en de brontekst van de pagina. Voor één stad is dat prima; voor veel steden zou ik liever een officiële export of API hebben dan dat ik pagina's één voor één ophaal. Ik ga uit van de CC0-regeling op de RCE-copyrightpagina, met de RCE als bron genoemd, en neem geen foto's uit de Kennisbank over. Klopt dat ook voor de Kennisbank zelf, of geldt daar iets anders? Daar hoor ik graag je beeld of dat van de beheerder over.
+Eén vraag daarbij: ik ga uit van de CC0-regeling op de RCE-copyrightpagina, met de RCE als bron, en ik neem geen foto's over. Geldt dat ook gewoon voor de Kennisbank? En als we dit voor meer steden willen doen, zou ik liever een export of API hebben dan pagina's één voor één ophalen.
 
-**Open toepassing en een mini-gebruikersonderzoek met Dordrecht.** Ja, de site is openbaar: geen login en geen tracking. De code is MIT en de data houdt de licentie van de bron (CC0, CC BY of CC BY-SA, zie de README op https://github.com/jolietjakeblues/layrs-rce). Je kunt het Erfgoedteam van Dordrecht dus gerust vragen te kijken.
+Open toepassing: ja, de site is openbaar, je hoeft nergens in te loggen en voor zover ik weet zit er geen tracking op. De code is MIT en de data houdt de licentie van de bron, zie de README: https://github.com/jolietjakeblues/layrs-rce. Je kunt het Erfgoedteam van Dordrecht dus gewoon vragen om te kijken. Ik zou er alleen even bij zeggen:
 
-Drie dingen die ik ze vooraf zou meegeven:
+- de gemeentelijke monumenten komen van de Wikipedia-lijst, niet uit het register van de gemeente zelf; als daar iets niet klopt, wil ik dat juist horen;
+- de archeologische rapporten van DANS zijn automatisch op de kaart gezet (337 van de 660 staan erop);
+- het is een prototype, door mij gehost, geen RCE-product.
 
-- De gemeentelijke monumenten komen van de Wikipedia-lijst en niet uit het register van de gemeente zelf. Ze kunnen dus fouten of ontbrekende panden zien, en juist die feedback is waardevol.
-- De archeologische rapporten komen van DANS en zijn automatisch op de kaart gezet. Van de 660 rapporten staan er 337 op de kaart; rapporten zonder coördinaat of adres in de titel ontbreken.
-- Het blijft een prototype dat ik zelf host op Cloudflare. Het is dus geen RCE-product en er is niemand die het beheert.
+Er zit sinds kort ook een Synode-wandeling in, als ze iets willen zien om op te reageren.
 
-Als jullie willen, loop ik het graag met jou en het Erfgoedteam door. Als je ze wilt vragen, laat me dan weten welke vragen ze zouden moeten beantwoorden (bijvoorbeeld: herkennen ze hun stad, kloppen de gemeentelijke monumenten, wat missen ze). Dan maak ik daar een korte lijst van.
+Zeg maar welke vragen je ze wilt stellen (herkennen ze hun stad, kloppen de monumenten, wat mis je), dan maak ik er een kort lijstje van. En als je het een keer samen wilt doorlopen: graag.
 
 Groet,
 Joop

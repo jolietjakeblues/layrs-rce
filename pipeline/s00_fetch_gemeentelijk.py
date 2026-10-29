@@ -50,6 +50,9 @@ def clean(v: str) -> str:
 
 def rows(wikitext: str, district_default: str | None):
     district = district_default
+    # some lists put several rows on one line, or behind an empty <!-- --> comment: one row per line
+    wikitext = re.sub(r"<!--.*?-->", "", wikitext, flags=re.S)
+    wikitext = re.sub(r"(?<!\n)(\{\{Tabel(?:rij gemeentelijk monument|voet|kop))", r"\n\1", wikitext, flags=re.I)
     for line in wikitext.splitlines():
         m = re.match(r"==\s*([^=]+?)\s*==\s*$", line)
         if m:
