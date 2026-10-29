@@ -1,0 +1,43 @@
+{
+  "label": "Voorst",
+  "gemeentecode": "0285",
+  "wikipedia": {"nl": "Voorst (gemeente)", "en": "Voorst"},
+  "origin": [204037.0, 472269.0],
+  "starts": [
+    ["Marktplein, Twello", "Marktplein, Twello", 204037.0, 472269.0],
+    ["Huis Duistervoorde", "Huis Duistervoorde", 203043.0, 471448.0],
+    ["Stationsstraat, Twello", "Stationsstraat, Twello", 203866.0, 472368.0]
+  ],
+  "home": {"x": -500, "z": 500, "azimuth": 200, "elevation": 40, "span": 9000},
+  "roofs_within": 1100,
+  "suspect_years": [],
+  "flood": true,
+  "kennisbank": true,
+  "landschap": ["landschapstypen_1850", "landschapstypen_nu", "aardkundig"],
+  "gemeentelijke_monumenten": {
+    "url": "https://nl.wikipedia.org/wiki/Lijst_van_gemeentelijke_monumenten_in_Voorst_(gemeente)",
+    "pages": [
+      ["Lijst van gemeentelijke monumenten in Voorst (gemeente)", null],
+      ["Lijst van gemeentelijke monumenten in Klarenbeek", "Klarenbeek"]
+    ]
+  },
+  "periods": [
+    ["p1", "Before 1750", "Vóór 1750", 1000, 1749, "#4a1410"],
+    ["p2", "1750–1849", "1750–1849", 1750, 1849, "#8c1c13"],
+    ["p3", "1850–1899", "1850–1899", 1850, 1899, "#c0462b"],
+    ["p4", "1900–1939", "1900–1939", 1900, 1939, "#d97a2b"],
+    ["p5", "1940–1959", "1940–1959", 1940, 1959, "#e5b13a"],
+    ["p6", "1960–1974", "1960–1974", 1960, 1974, "#8e9f3c"],
+    ["p7", "1975–1984", "1975–1984", 1975, 1984, "#3f8f6b"],
+    ["p8", "1985–1994", "1985–1994", 1985, 1994, "#2c7391"],
+    ["p9", "1995–2004", "1995–2004", 1995, 2004, "#3a4f9a"],
+    ["p10", "2005–today", "2005–nu", 2005, 2100, "#6a3f8f"]
+  ],
+  "tier1": ["Rijksstraatweg", "Oude Rijksstraatweg", "Bandijk", "Binnenweg", "Duistervoordseweg", "Twelloseweg",
+            "Dorpsstraat", "Marktplein", "Stationsstraat", "Kerklaan", "Middendijk", "Hoofdweg", "Wijkseweg", "Molenweg"],
+  "steps": ["s00_fetch_boundary", "s00_fetch_3dbag", "s00_fetch_3dbv", "s00_fetch_water", "s00_fetch_flood", "s00_fetch_landschap", "s00_fetch_addresses",
+            "s00_fetch_energy", "s00_fetch_rce", "s00_fetch_gemeentelijk", "s00_fetch_kennisbank", "s00_fetch_archeo", "s00_fetch_wikidata", "s01_load", "s02_attributes",
+            "s01c_roofs", "s01d_spires", "s05_layers", "s07_labels", "s10_commons", "s06_wiki", "s17_archeo", "s03_tiles",
+            "s04_water", "s13_graph",
+            "s14_search", "s15_addresses", "s16_register"]
+}

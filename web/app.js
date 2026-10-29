@@ -2091,13 +2091,14 @@ const totals = periods.map(() => 0);
 for (const v of Object.values(HIST)) v.forEach((n, i) => totals[i] += n);
 const fmt = n => n.toLocaleString(fmtLocale());
 let activeLayer = null;
-const SECTION_ORDER = ['Discover', 'Architecture', 'Archaeology', 'Water', 'Trade and empire', 'Art and craft', 'Science and learning',
+const SECTION_ORDER = ['Discover', 'Architecture', 'Archaeology', 'Water', 'Landscape', 'Trade and empire', 'Art and craft', 'Science and learning',
   'Faith and community', 'Countries and communities', 'The modern city', 'War and occupation'];
 const groupOn = {};
 let maskTarget = periods.map(() => 1);
 
 const ICON = {
   'Water': '<path d="M8 1.8C6 4.6 3.8 6.8 3.8 9.4a4.2 4.2 0 0 0 8.4 0C12.2 6.8 10 4.6 8 1.8z"/>',
+  'Landscape': '<path d="M1.5 13.5 5.5 6l3 5 2-3 3.5 5.5z"/>',
   'Archaeology': '<path d="M2 4.5c2-1.2 4-1.2 6 0s4 1.2 6 0M2 8.5c2-1.2 4-1.2 6 0s4 1.2 6 0M2 12.5c2-1.2 4-1.2 6 0s4 1.2 6 0"/>',
   'Buildings today': '<path d="M2.5 14.5h11"/><rect x="3" y="8" width="2.6" height="6.5"/><rect x="6.7" y="4" width="2.6" height="10.5"/><rect x="10.4" y="6" width="2.6" height="8.5"/>',
   'Art and craft': '<path d="M6 1.5h4M6.6 1.5v2.6C4.2 5.5 3.6 8 4 10.5c.4 2.4 1.9 4 4 4s3.6-1.6 4-4c.4-2.5-.2-5-2.6-6.4V1.5"/><path d="M5.2 8.5c1.8.8 3.8.8 5.6 0"/>',
