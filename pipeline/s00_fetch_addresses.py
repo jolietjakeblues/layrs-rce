@@ -48,17 +48,24 @@ def vbo_cell(x, y):
         start += PAGE
 
 
-def adres_cell(x, y):
+def adres_cell(x, y, size=CELL):
     out = []
-    d = get(ADRES, {"f": "json", "limit": PAGE, "bbox": f"{x},{y},{x + CELL},{y + CELL}", "bbox-crs": RD,
-                    **({"bronhouder_identificatie": GEMEENTE_CODE} if GEMEENTE_CODE else {})})
-    while True:
-        out += [f["properties"] for f in d["features"]
-                if f["properties"]["adresseerbaar_object_type"] == "Verblijfsobject"]
-        nxt = next((l["href"] for l in d["links"] if l["rel"] == "next"), None)
-        if not nxt:
-            return out
-        d = get(nxt)
+    try:
+        d = get(ADRES, {"f": "json", "limit": PAGE, "bbox": f"{x},{y},{x + size},{y + size}", "bbox-crs": RD,
+                        **({"bronhouder_identificatie": GEMEENTE_CODE} if GEMEENTE_CODE else {})})
+        while True:
+            out += [f["properties"] for f in d["features"]
+                    if f["properties"]["adresseerbaar_object_type"] == "Verblijfsobject"]
+            nxt = next((l["href"] for l in d["links"] if l["rel"] == "next"), None)
+            if not nxt:
+                return out
+            d = get(nxt)
+    except requests.RequestException:
+        # PDOK's cursor paging can fail for good deep in a very dense cell (Hilversum's centre, page 9): split the cell
+        if size <= 125:
+            raise
+        h = size // 2
+        return [a for dx in (0, h) for dy in (0, h) for a in adres_cell(x + dx, y + dy, h)]
 
 
 def main():

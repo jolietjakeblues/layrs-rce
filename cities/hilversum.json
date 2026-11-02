@@ -1,0 +1,40 @@
+{
+  "label": "Hilversum",
+  "gemeentecode": "0402",
+  "origin": [140258.0, 470674.0],
+  "starts": [
+    ["Kerkbrink", "Kerkbrink", 140258.0, 470674.0],
+    ["Raadhuis Hilversum (Dudok)", "Raadhuis Hilversum (Dudok)", 140180.0, 471238.0],
+    ["Hilversum station", "Station Hilversum", 140887.0, 470994.0]
+  ],
+  "home": {"x": 0, "z": 300, "azimuth": 200, "elevation": 40, "span": 7000},
+  "roofs_within": 1100,
+  "suspect_years": [],
+  "kennisbank": true,
+  "gemeentelijke_monumenten": {
+    "url": "https://nl.wikipedia.org/wiki/Lijst_van_gemeentelijke_monumenten_in_Hilversum",
+    "pages": [
+      ["Lijst van gemeentelijke monumenten in Hilversum", null]
+    ]
+  },
+  "periods": [
+    ["p1", "Before 1850", "Vóór 1850", 1000, 1849, "#4a1410"],
+    ["p2", "1850–1874", "1850–1874", 1850, 1874, "#8c1c13"],
+    ["p3", "1875–1899 After the railway", "1875–1899 Na de spoorlijn", 1875, 1899, "#c0462b"],
+    ["p4", "1900–1914", "1900–1914", 1900, 1914, "#d97a2b"],
+    ["p5", "1915–1940 Dudok and between the wars", "1915–1940 Dudok en het interbellum", 1915, 1940, "#e5b13a"],
+    ["p6", "1941–1959", "1941–1959", 1941, 1959, "#8e9f3c"],
+    ["p7", "1960–1974", "1960–1974", 1960, 1974, "#3f8f6b"],
+    ["p8", "1975–1989", "1975–1989", 1975, 1989, "#2c7391"],
+    ["p9", "1990–2004", "1990–2004", 1990, 2004, "#3a4f9a"],
+    ["p10", "2005–today", "2005–nu", 2005, 2100, "#6a3f8f"]
+  ],
+  "tier1": ["Groest", "Kerkbrink", "Kerkstraat", "Oude Torenstraat", "Havenstraat", "Stationsstraat", "Utrechtseweg",
+            "Soestdijkerstraatweg", "Emmastraat", "Vaartweg", "Larenseweg", "Bussumergrintweg", "Dudokpark",
+            "Vondellaan", "Boomberglaan", "Diependaalselaan", "Loosdrechtseweg"],
+  "steps": ["s00_fetch_boundary", "s00_fetch_3dbag", "s00_fetch_3dbv", "s00_fetch_water", "s00_fetch_addresses",
+            "s00_fetch_energy", "s00_fetch_rce", "s00_fetch_gemeentelijk", "s00_fetch_kennisbank", "s00_fetch_wikidata", "s01_load", "s02_attributes",
+            "s01c_roofs", "s01d_spires", "s05_layers", "s07_labels", "s10_commons", "s06_wiki", "s03_tiles",
+            "s04_water", "s13_graph",
+            "s14_search", "s15_addresses", "s16_register"]
+}
