@@ -8,6 +8,7 @@ history, from national open data only. Or one kind of monument across a province
 - Dordrecht: https://layrs-dordrecht.pages.dev (with an archaeology mode)
 - Zwolle: https://layrs-zwolle.pages.dev (with an archaeology mode)
 - Voorst (Twello and its other villages): https://main.layrs-voorst.pages.dev (with an archaeology mode and the province's landscape layers)
+- Hilversum: https://layrs-hilversum.pages.dev
 - Mills in Zuid-Holland: https://layrs-molens-zh.pages.dev (a theme, see below)
 
 - Zie ook de Gouda versie van @coret https://www.goudatijdmachine.nl/layrs/
