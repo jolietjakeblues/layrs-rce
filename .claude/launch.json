@@ -1,7 +1,0 @@
-{
-  "version": "0.0.1",
-  "configurations": [
-    { "name": "layrs", "runtimeExecutable": "python", "runtimeArgs": ["-m", "http.server", "8642", "--directory", "web"], "port": 8642 },
-    { "name": "layrs-dist-amersfoort", "runtimeExecutable": "python", "runtimeArgs": ["-m", "http.server", "8643", "--directory", "dist/amersfoort"], "port": 8643 }
-  ]
-}
