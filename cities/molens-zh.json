@@ -56,7 +56,7 @@
     ["p10", "2000–today", "2000–nu", 2000, 2100, "#6a3f8f"]
   ],
   "tier1": [],
-  "steps": ["s00_theme_select", "s00_fetch_3dbag", "s00_fetch_3dbv", "s00_fetch_water", "s00_fetch_addresses",
+  "steps": ["s00_theme_select", "s00_fetch_kenmerken", "s00_fetch_3dbag", "s00_fetch_3dbv", "s00_fetch_water", "s00_fetch_addresses",
             "s01_load", "s01b_theme_panden", "s00_fetch_wikidata", "s02_attributes", "s01c_roofs", "s05_layers",
             "s06_wiki", "s03_tiles", "s04_water", "s13_graph", "s14_search", "s15_addresses", "s16_register"]
 }
