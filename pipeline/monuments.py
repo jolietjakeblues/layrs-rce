@@ -54,6 +54,20 @@ def first_date(text: str) -> tuple[int, int] | None:
     return min(found)[1] if found else None
 
 
+def kenmerken_years() -> dict[str, tuple[int, int]]:
+    """Monument number → (first, last year) of its vervaardiging in the Kennisbank's characteristics (s00_fetch_kenmerken).
+
+    Structured, so it beats a date read from the description (which has taken a street, "Laan van 1940-45", for a year).
+    Not used where the page dates an alteration before the vervaardiging: one of the two is then wrong."""
+    path = Path(f"{DATA}/raw/layers/kenmerken.json")
+    out = {}
+    for r in json.load(open(path, encoding="utf-8")) if path.exists() else []:
+        made = [w for w in r["works"] if w["kind"] == "vervaardiging"]
+        if made and not any(w["from"] < made[0]["from"] for w in r["works"] if w["kind"] != "vervaardiging"):
+            out[str(r["nr"])] = (made[0]["from"], made[0]["to"])
+    return out
+
+
 def load() -> dict[str, tuple[int, int, str]]:
     """BAG pand id (16 digits) → (lo, hi, monument number)."""
     dates = {}
@@ -66,9 +80,11 @@ def load() -> dict[str, tuple[int, int, str]]:
     for r in wd_monuments():
         if r["bag"] and r["nr"] in dates:
             links[r["bag"].zfill(16)] = (*dates[r["nr"]], r["nr"])
+    made = kenmerken_years()
     for m in json.load(open(f"{DATA}/raw/layers/monuments.json")):
-        # building years the register records as data (s00_fetch_rce, from Elastic) beat years read from its text
-        d = tuple(m["years"]) if m.get("years") else dates.get(str(m["nr"]))
+        # building years the register records as data (s00_fetch_rce, from Elastic) beat the Kennisbank's, and both
+        # beat years read from the register's text
+        d = tuple(m["years"]) if m.get("years") else made.get(str(m["nr"])) or dates.get(str(m["nr"]))
         for p in m["panden"]:
             if d:
                 links[p] = (*d, str(m["nr"]))

@@ -207,6 +207,7 @@ const periods = config.periods;
 for (const p of periods) if (p.label_nl) NL_UI[p.label] = p.label_nl;
 Object.assign(NL_UI, {
   'Protected townscapes': 'Beschermde gezichten', 'From the register': 'Uit het register',
+  'History of the building': 'Bouwgeschiedenis', 'From the RCE Kennisbank': 'Uit de Kennisbank van de RCE',
   'Part of the complex': 'Onderdeel van het complex', 'Read the full entry': 'Lees de hele beschrijving in het register',
   'More about this mill on Allemolens.nl': 'Meer over deze molen op Allemolens.nl', 'with thanks': 'met dank',
   'Archaeology': 'Archeologie', 'Built': 'Gebouwd', 'Back to the city as built': 'Terug naar de gebouwde stad',
@@ -1299,6 +1300,12 @@ function groupColor(g) {
 // The RCE Kennisbank page of a building's monument, when a layer carries it as the source of its note.
 const kennisbankUrl = b => b.groups.map(g => g.layer.notes?.[b.bag]?.source).find(u => /^https:\/\/kennis\.cultureelerfgoed\.nl\//.test(u || ''));
 
+// The monument's building history in the Kennisbank (pipeline/s00_fetch_kenmerken.py): what was built, altered, restored,
+// and when. The kinds are the Kennisbank's own Dutch words; the notes stay Dutch.
+const WORK_EN = { vervaardiging: 'built', verbouwing: 'altered', wijziging: 'changed', restauratie: 'restored', uitbreiding: 'extended' };
+const workHtml = w => `<li><b>${w.exact ? '' : 'c. '}${w.from}${w.to !== w.from ? '–' + w.to : ''}</b> ${esc(LANG === 'nl' ? w.kind : WORK_EN[w.kind] || w.kind)}${
+  w.note ? `: <span lang="nl">${esc(w.note)}</span>` : ''}</li>`;
+
 function residentsHtml(b, pinned) {
   const n = residentsLayer?.notes?.[b.bag];
   if (!n) return '';
@@ -1449,7 +1456,7 @@ function cardHtml(gid, pinned) {
   const sources = [
     wikiOf(w)?.url && link(wikiOf(w).url, t(wikiOf(w).lang === 'nl' ? 'Dutch Wikipedia' : 'Wikipedia')),
     b.mon && link(`https://monumentenregister.cultureelerfgoed.nl/monumenten/${b.mon}`, t('Monument register')),
-    kennisbankUrl(b) && link(kennisbankUrl(b), 'Kennisbank RCE'),
+    (reg?.kb || kennisbankUrl(b)) && link(reg?.kb || kennisbankUrl(b), 'Kennisbank RCE'),
     THEME?.credit && b.mon && link(THEME.credit.search + encodeURIComponent([reg?.name || w?.label_nl || w?.label, reg?.place].filter(Boolean).join(' ')), 'Allemolens.nl'),
     ldvLink,
     link(`https://bagviewer.kadaster.nl/lvbag/bag-viewer/?objectId=${b.bag}`, t('BAG register')),
@@ -1468,6 +1475,8 @@ function cardHtml(gid, pinned) {
       ${THEME?.credit ? `<p>${link(THEME.credit.search + encodeURIComponent([reg.name || w?.label_nl || w?.label, reg.place].filter(Boolean).join(' ')),
         t('More about this mill on Allemolens.nl'))} <span class="why">(${esc(THEME.credit.label)}, ${t('with thanks')})</span></p>` : ''}
       ${reg.cho ? `<p class="ldv">${t('In the Linked Data Voorziening')}: ${link(reg.cho, reg.cho)}</p>` : ''}</section>` : '';
+  const worksHtml = pinned && reg?.works?.length ? `<section><h4>${t('History of the building')}</h4><ul class="works">${reg.works.map(workHtml).join('')}</ul>
+      <p class="why">${t('From the RCE Kennisbank')}${reg.kb ? `: ${link(reg.kb, 'Kennisbank RCE')}` : ''}</p></section>` : '';
   const dating = b.orig !== b.year ? `${t(DATE_NOTE[b.flag] || '')} ${t('BAG gives')} ${b.orig}.` : (DATE_NOTE[b.flag] && t(DATE_NOTE[b.flag]));
   return `
     ${pinned ? '<button class="card-close" aria-label="Close">×</button>' : ''}
@@ -1475,6 +1484,7 @@ function cardHtml(gid, pinned) {
     ${cardHeadHtml(b, w, period)}
     ${pinned && wikiOf(w)?.extract ? `<section><p class="extract">${esc(wikiOf(w).extract)}</p></section>` : ''}
     ${regHtml}
+    ${worksHtml}
     ${didYouKnow[b.bag] ? `<section class="fact"><h4>${t('Did you know')}</h4><p>${esc(LANG === 'nl' ? didYouKnow[b.bag].nl : didYouKnow[b.bag].en)}${pinned ? ` ${link(didYouKnow[b.bag].source, t('Source'))}` : ''}</p></section>` : ''}
     ${residentsHtml(b, pinned)}
     ${inLayers ? `<section><h4>${t('In layers')}</h4><ul class="chips">${inLayers}</ul></section>` : ''}
