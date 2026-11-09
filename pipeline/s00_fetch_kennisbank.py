@@ -23,10 +23,10 @@ SITE = "https://kennis.cultureelerfgoed.nl"
 PAGE = SITE + "/index.php/Monumenten/{nr}"
 
 
-def titles() -> set[str]:
+def titles(prefix: str = "Monumenten/") -> set[str]:
     out, cont = set(), None
     while True:
-        p = {"action": "query", "list": "allpages", "apprefix": "Monumenten/", "aplimit": "500", "format": "json"}
+        p = {"action": "query", "list": "allpages", "apprefix": prefix, "aplimit": "500", "format": "json"}
         if cont:
             p["apcontinue"] = cont
         r = requests.get(f"{SITE}/api.php", params=p, headers=UA, timeout=60)

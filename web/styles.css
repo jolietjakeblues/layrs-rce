@@ -196,6 +196,8 @@ body.archeo .veil { display: none; }
 .card .elabel { color: #fff; font-weight: 700; padding: 1px 7px; border-radius: 3px; }
 .card .residents { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .card .residents span, .card .residents .desc { color: var(--muted); }
+.card .works { list-style: none; margin: 0 0 6px; padding: 0; display: flex; flex-direction: column; gap: 4px; line-height: 1.45; }
+.card .works b { font-variant-numeric: tabular-nums; }
 .card .residents blockquote { margin: 4px 0 0; padding-left: 10px; border-left: 2px solid var(--rule); font-size: 12px; line-height: 1.5; color: #3e4448; }
 .card .photo.inline { margin: 0 -16px -10px; }
 .card .photo.inline img { border-radius: 0; }
