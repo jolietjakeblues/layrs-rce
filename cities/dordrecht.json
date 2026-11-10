@@ -12,6 +12,7 @@
   "suspect_years": [],
   "flood": true,
   "kennisbank": true,
+  "makers": true,
   "residents": {
     "list": "Lijst van Dordtenaren",
     "extra": [
@@ -20,6 +21,42 @@
     ]
   },
   "walks": [
+    {
+      "id": "dewitt",
+      "group": [
+        "stop",
+        "A place in the story",
+        "Een plek in het verhaal"
+      ],
+      "section": "Architecture",
+      "section_nl": "Architectuur",
+      "title": "The De Witt brothers",
+      "title_nl": "De gebroeders De Witt",
+      "era": "1623–1672",
+      "era_nl": "1623–1672",
+      "text": "Cornelis (1623) and Johan (1625) de Witt were born in Dordrecht. Johan became the city's pensionary in 1650 and later grand pensionary of Holland; Cornelis was a regent and mayor of Dordrecht. Both died in 1672. Follow what Dordrecht keeps of them.",
+      "text_nl": "Cornelis (1623) en Johan (1625) de Witt werden in Dordrecht geboren. Johan werd in 1650 pensionaris van de stad en later raadpensionaris van Holland; Cornelis was regent en burgemeester van Dordrecht. Beiden stierven in 1672. Volg wat Dordrecht van hen bewaart.",
+      "caveat": "The statue stands on the bridge, so its stop marks the nearest building. Whether the museum still shows the usher's rod has not been checked.",
+      "caveat_nl": "Het standbeeld staat op de brug, dus de stop markeert het dichtstbijzijnde gebouw. Of het museum de deurwaardersroede nu nog toont, is niet gecontroleerd.",
+      "source": [
+        "Johan de Witt, Wikipedia",
+        "https://nl.wikipedia.org/wiki/Johan_de_Witt"
+      ],
+      "stops": [
+        {
+          "name": "Standbeeld gebroeders De Witt (Visbrug)",
+          "monument": "522371",
+          "story": "In 1918 werd op de Visbrug een bronzen standbeeld geplaatst ter nagedachtenis aan de gebroeders Johan en Cornelis de Witt, naar ontwerp van Toon Dupuis, met een zandstenen omlijsting van D. Roosenburg. Het gemarkeerde gebouw is het dichtstbijzijnde; het standbeeld zelf staat op de brug.",
+          "source": "https://monumentenregister.cultureelerfgoed.nl/monumenten/522371"
+        },
+        {
+          "name": "Huis Van Gijn",
+          "monument": "13565",
+          "story": "Volgens het artikel over Cornelis de Witt op Wikipedia is Simon van Gijn in Dordrecht in het bezit van de deurwaardersroede waarmee Tomas Robijn, deurwaarder van het Hof van Holland, op 24 juli 1672 Cornelis de Witt in Dordrecht in hechtenis nam.",
+          "source": "https://nl.wikipedia.org/wiki/Cornelis_de_Witt"
+        }
+      ]
+    },
     {
       "id": "synod", "section": "Faith and community", "section_nl": "Geloof en gemeenschap",
       "title": "Synod of Dort 1618–19", "title_nl": "Synode van Dordrecht 1618–19", "era": "1618–1619", "era_nl": "1618–1619",
@@ -77,7 +114,7 @@
             "Zuidendijk", "Mijlweg", "Admiraal de Ruyterweg", "Karel Lotsylaan", "Overkampweg", "Smitsweg"],
   "steps": ["s00_fetch_boundary", "s00_fetch_3dbag", "s00_fetch_3dbv", "s00_fetch_water", "s00_fetch_flood", "s00_fetch_addresses",
             "s00_fetch_energy", "s00_fetch_rce", "s00_fetch_gemeentelijk", "s00_fetch_kennisbank", "s00_fetch_kenmerken", "s00_fetch_dans", "s00_fetch_residents", "s00_fetch_archeo", "s00_fetch_wikidata", "s01_load", "s02_attributes",
-            "s01c_roofs", "s01d_spires", "s05_layers", "s07_labels", "s10_commons", "s06_wiki", "s17_archeo", "s03_tiles",
+            "s01c_roofs", "s01d_spires", "s05_layers", "s07_labels", "s08_pins", "s10_commons", "s06_wiki", "s17_archeo", "s03_tiles",
             "s04_water", "s13_graph",
             "s14_search", "s15_addresses", "s16_register"]
 }

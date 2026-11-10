@@ -2,9 +2,10 @@
 
 Shards keyed by the monument number modulo SHARDS, loaded when a card needs one:
   {nr: {name, text, url, cho, complex: {name, url, cho} | null, photos: [{src, desc, rights, page}],
-        kb?, works?: [{kind, from, to, exact, note}]}}
+        kb?, works?: [{kind, from, to, exact, note}], makers?: [[name, group]]}}
 url is the entry in the monument register, cho the object's URI in the RCE linked data. kb is its page in the Kennisbank
-and works its building history, by year (s00_fetch_kenmerken); both are left out where the Kennisbank has none.
+and works its building history, by year (s00_fetch_kenmerken); both are left out where the Kennisbank has none. makers
+are the register's makers, builders and clients (makers.py), as [name, group], left out where it names none.
 text is the register's description, cut at TEXT_MAX characters on a sentence; the card links to the full entry.
 Photos come from the RCE image bank (s00_fetch_rce), mostly CC BY 4.0, each with its page in the bank.
 """
@@ -12,6 +13,7 @@ import json
 import re
 from pathlib import Path
 
+from . import makers
 from .city import DATA, WEB
 
 SHARDS = 16
@@ -46,6 +48,8 @@ def main():
             shards[int(m["nr"]) % SHARDS][m["nr"]]["kb"] = k["kb"]
         if k and k["works"]:
             shards[int(m["nr"]) % SHARDS][m["nr"]]["works"] = sorted(k["works"], key=lambda w: (w["from"], w["to"]))
+        if people := makers.by_monument().get(str(m["nr"])):
+            shards[int(m["nr"]) % SHARDS][m["nr"]]["makers"] = [[p["name"], p["group"]] for p in people]
     OUT.mkdir(parents=True, exist_ok=True)
     for f in OUT.glob("*.json"):
         f.unlink()
@@ -53,7 +57,8 @@ def main():
         (OUT / f"{k}.json").write_text(json.dumps(s, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     size = sum(f.stat().st_size for f in OUT.glob("*.json")) // 1024
     print(f"{len(mons)} monuments, {sum(len(v) for v in photos.values())} photos, {sum(1 for s in shards for v in s.values() if 'kb' in v)} "
-          f"Kennisbank links, {sum(1 for s in shards for v in s.values() if 'works' in v)} with a building history; {size} KB in {SHARDS} shards")
+          f"Kennisbank links, {sum(1 for s in shards for v in s.values() if 'works' in v)} with a building history, "
+          f"{sum(1 for s in shards for v in s.values() if 'makers' in v)} with makers; {size} KB in {SHARDS} shards")
 
 
 if __name__ == "__main__":

@@ -50,6 +50,8 @@ main streets to label from afar, and the pipeline steps. The pipeline reads and 
 | `s00_fetch_gemeentelijk` | Wikipedia's lists of municipal monuments (optional, per city) | the municipal monuments, placed on their panden by address and coordinate |
 | `s00_fetch_kennisbank` | RCE Kennisbank (kennis.cultureelerfgoed.nl), MediaWiki API and page source | the introductions and articles of the city's national monuments |
 | `s00_fetch_kenmerken` | RCE Kennisbank, the characteristics of the city's national monuments (optional, per city; where the Kennisbank has them) | the building history on the monument's card (built, altered, restored, when, with the Kennisbank's notes), a link to its Kennisbank page, and a building year where the register has none (not where an alteration is dated before the building) |
+| `s08_pins` | RCE Elastic projection (the register's own geometry) | optional, per city: the national monuments without a BAG pand (statues, bridges, walls, houses the register does not link) as diamonds on the map; a click opens the monument's entry as a card |
+| `makers.py`, config `"makers": true` | RCE monument register, its actors (`s00_fetch_rce`) | optional, per city: the layer "Makers and builders" (makers, builders, clients) and a section on the monument's card |
 | `s00_fetch_dans` | DANS Data Station Archaeology (Dataverse API) | the city's excavation, survey and building-history reports: layer, and boreholes in the archaeology mode |
 | `s00_fetch_residents` | Wikipedia (the city's list of natives) and Wikidata | deceased people whose article names the address where they lived or worked |
 | `s00_fetch_flood` | LIWO, Rijkswaterstaat (WCS) | maximum flood depth per probability class: the flood and flood-depth layers |

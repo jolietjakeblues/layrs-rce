@@ -204,6 +204,8 @@ def main():
         config["kind"] = CFG["kind"]
     if (OUT / "places.json").exists():  # the villages' names (s08_places)
         config["places"] = json.loads((OUT / "places.json").read_text(encoding="utf-8"))
+    if (OUT / "pins.json").exists():  # monuments without a pand, as markers (s08_pins)
+        config["pins"] = json.loads((OUT / "pins.json").read_text(encoding="utf-8"))
     if THEME:
         config["theme"] = dict(noun=THEME["noun"], credit=THEME["credit"], radius=THEME["radius"],
                                markers=theme_markers(b, gid, cen), map=province_map())

@@ -18,7 +18,7 @@ from pathlib import Path
 import geopandas as gpd
 import numpy as np
 
-from . import dans, gemeentelijk
+from . import dans, gemeentelijk, makers
 from .city import CFG, DATA, LABEL, THEME
 from .monuments import wd_monuments
 
@@ -434,6 +434,38 @@ if kennisbank():
         return out
 
 
+# ---------- makers and builders ----------
+# The register names who made, built and commissioned a monument (s00_fetch_rce, rce_actors.json; makers.py sorts the
+# roles into three groups). A city opts in with "makers": true in its config.
+
+if makers.by_monument():
+    @layer(
+        scope="city", id="makers", section="Architecture", section_nl="Architectuur",
+        title="Makers and builders", title_nl="Makers en bouwers", era="All periods", era_nl="Alle perioden",
+        text=(f"The monument register names who made, built and commissioned the national monuments of {LABEL}: architects, "
+              "engineers and sculptors, contractors, clients. Pick a group to see which buildings they stand behind."),
+        text_nl=(f"Het monumentenregister noemt wie de rijksmonumenten in {LABEL} maakten, bouwden en lieten bouwen: "
+                 "architecten, ingenieurs en beeldhouwers, aannemers, opdrachtgevers. Kies een groep om te zien achter welke "
+                 "gebouwen ze staan."),
+        caveat="Only monuments where the register names a person; an unknown maker leaves the building out.",
+        caveat_nl="Alleen monumenten waarbij het register een persoon noemt; een onbekende maker laat het gebouw weg.",
+        source=REGISTER,
+        groups=[(k, en, nl) for k, en, nl, _, _ in makers.GROUPS],
+    )
+    def makers_layer():
+        out, addr, by = {}, addresses(), makers.by_monument()
+        for m in monuments():
+            people = by.get(str(m["nr"]))
+            if not people:
+                continue
+            url = m.get("cho") or f"https://monumentenregister.cultureelerfgoed.nl/monumenten/{m['nr']}"
+            for p in m["panden"]:
+                note = makers.note(m.get("name") or addr.get(p) or f"Rijksmonument {m['nr']}", people, url)
+                for g in sorted({x["group"] for x in people}):
+                    out.setdefault(p, []).append((g, note))
+        return out
+
+
 # ---------- walks ----------
 # A walk is a story told by a few places (the config's "walks"): every stop is a monument, an address, or the building nearest
 # the corner of two streets, with a sentence and its source. It is a layer whose notes are the stops, so the viewer can make a
@@ -442,6 +474,9 @@ if kennisbank():
 def _stop_panden(stop: dict) -> set[str]:
     if stop.get("monument"):
         found = set(monument_panden().get(str(stop["monument"]), ()))
+        if not found:  # a monument the register links to no pand: where its Kennisbank page puts it (address, else geometry)
+            page = next((r for r in kennisbank() if str(r["nr"]) == str(stop["monument"])), None)
+            found = kennisbank_panden(page) if page else set()
         return {sorted(found)[0]} if found else set()
     if stop.get("address"):
         m = re.match(r"^(.*?)\s+(\d+)\s*([A-Za-z]?)$", stop["address"])
