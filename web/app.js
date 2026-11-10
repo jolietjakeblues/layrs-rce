@@ -208,6 +208,9 @@ for (const p of periods) if (p.label_nl) NL_UI[p.label] = p.label_nl;
 Object.assign(NL_UI, {
   'Protected townscapes': 'Beschermde gezichten', 'From the register': 'Uit het register',
   'History of the building': 'Bouwgeschiedenis', 'From the RCE Kennisbank': 'Uit de Kennisbank van de RCE',
+  'A monument without a BAG building: it is marked where the register places it.': 'Een monument zonder BAG-gebouw: het staat waar het register het plaatst.',
+  'Makers and builders': 'Makers en bouwers', 'Makers': 'Makers', 'Builders': 'Bouwers', 'Clients': 'Opdrachtgevers',
+  'Named in the monument register': 'Genoemd in het monumentenregister',
   'Part of the complex': 'Onderdeel van het complex', 'Read the full entry': 'Lees de hele beschrijving in het register',
   'More about this mill on Allemolens.nl': 'Meer over deze molen op Allemolens.nl', 'with thanks': 'met dank',
   'Archaeology': 'Archeologie', 'Built': 'Gebouwd', 'Back to the city as built': 'Terug naar de gebouwde stad',
@@ -992,6 +995,42 @@ function stepVillages(dist) {
   for (const s of villages) { s.material.opacity = o; s.visible = o > 0; }
 }
 
+// ---------- Monuments without a building ----------
+// The national monuments the register gives no BAG pand (statues, bridges, walls, houses it does not link): a diamond at
+// the register's geometry (pipeline/s08_pins.py), clicked like a building. Its card is the monument's entry in the register.
+const PIN_COLOR = '#9a3b2e', PIN_FAR = Math.max(16000, config.home.span * 1.2);  // a municipality opens far out: the markers show from there
+let pinnedPin = null;
+const pinGroup = new THREE.Group();
+scene.add(pinGroup);
+const pinTexture = (() => {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const x = c.getContext('2d');
+  x.beginPath(); x.moveTo(32, 4); x.lineTo(60, 32); x.lineTo(32, 60); x.lineTo(4, 32); x.closePath();
+  x.fillStyle = PIN_COLOR; x.fill(); x.lineWidth = 6; x.strokeStyle = '#fff'; x.stroke();
+  return new THREE.CanvasTexture(c);
+})();
+const pins = (config.pins || []).map(p => {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: pinTexture, sizeAttenuation: false, depthTest: false, transparent: true }));
+  s.scale.set(0.022, 0.022, 1);
+  s.position.set(p.x, 14, p.z);
+  s.renderOrder = 10;
+  pinGroup.add(s);
+  return { ...p, sprite: s };
+});
+function stepPins(dist) { pinGroup.visible = !ARCH.on && dist < PIN_FAR; }
+const pinScreen = new THREE.Vector3();
+function pinAt(x, y) {
+  if (!pinGroup.visible) return null;
+  let best = null, bd = 16;
+  for (const p of pins) {
+    pinScreen.set(p.x, 14, p.z).project(camera);
+    const d = Math.hypot((pinScreen.x + 1) / 2 * innerWidth - x, (1 - pinScreen.y) / 2 * innerHeight - y);
+    if (pinScreen.z < 1 && d < bd) { bd = d; best = p; }
+  }
+  return best;
+}
+
 // ---------- Shared uniforms ----------
 const col = c => new THREE.Color(c);
 const uniforms = {
@@ -1303,6 +1342,14 @@ const kennisbankUrl = b => b.groups.map(g => g.layer.notes?.[b.bag]?.source).fin
 // The monument's building history in the Kennisbank (pipeline/s00_fetch_kenmerken.py): what was built, altered, restored,
 // and when. The kinds are the Kennisbank's own Dutch words; the notes stay Dutch.
 const WORK_EN = { vervaardiging: 'built', verbouwing: 'altered', wijziging: 'changed', restauratie: 'restored', uitbreiding: 'extended' };
+// Who made, built and commissioned a monument, as the register names them (pipeline/makers.py, in the register's shard).
+const MAKER_GROUPS = [['makers', 'Makers'], ['builders', 'Builders'], ['clients', 'Clients']];
+const makersSection = reg => {
+  if (!reg?.makers?.length) return '';
+  const rows = MAKER_GROUPS.map(([k, label]) => [label, reg.makers.filter(m => m[1] === k).map(m => esc(m[0]))]).filter(r => r[1].length);
+  return `<section><h4>${t('Makers and builders')}</h4><ul class="works">${rows.map(([label, names]) => `<li><b>${t(label)}</b> ${names.join(', ')}</li>`).join('')}</ul>
+    <p class="why">${t('Named in the monument register')}</p></section>`;
+};
 const workHtml = w => `<li><b>${w.exact ? '' : 'c. '}${w.from}${w.to !== w.from ? '–' + w.to : ''}</b> ${esc(LANG === 'nl' ? w.kind : WORK_EN[w.kind] || w.kind)}${
   w.note ? `: <span lang="nl">${esc(w.note)}</span>` : ''}</li>`;
 
@@ -1477,6 +1524,7 @@ function cardHtml(gid, pinned) {
       ${reg.cho ? `<p class="ldv">${t('In the Linked Data Voorziening')}: ${link(reg.cho, reg.cho)}</p>` : ''}</section>` : '';
   const worksHtml = pinned && reg?.works?.length ? `<section><h4>${t('History of the building')}</h4><ul class="works">${reg.works.map(workHtml).join('')}</ul>
       <p class="why">${t('From the RCE Kennisbank')}${reg.kb ? `: ${link(reg.kb, 'Kennisbank RCE')}` : ''}</p></section>` : '';
+  const makersHtml = pinned ? makersSection(reg) : '';
   const dating = b.orig !== b.year ? `${t(DATE_NOTE[b.flag] || '')} ${t('BAG gives')} ${b.orig}.` : (DATE_NOTE[b.flag] && t(DATE_NOTE[b.flag]));
   return `
     ${pinned ? '<button class="card-close" aria-label="Close">×</button>' : ''}
@@ -1485,6 +1533,7 @@ function cardHtml(gid, pinned) {
     ${pinned && wikiOf(w)?.extract ? `<section><p class="extract">${esc(wikiOf(w).extract)}</p></section>` : ''}
     ${regHtml}
     ${worksHtml}
+    ${makersHtml}
     ${didYouKnow[b.bag] ? `<section class="fact"><h4>${t('Did you know')}</h4><p>${esc(LANG === 'nl' ? didYouKnow[b.bag].nl : didYouKnow[b.bag].en)}${pinned ? ` ${link(didYouKnow[b.bag].source, t('Source'))}` : ''}</p></section>` : ''}
     ${residentsHtml(b, pinned)}
     ${inLayers ? `<section><h4>${t('In layers')}</h4><ul class="chips">${inLayers}</ul></section>` : ''}
@@ -1512,7 +1561,7 @@ function placeCard(x, y) {
 }
 let hoverGid = -1;
 function showCard(gid, x, y) {
-  if (pinnedGid >= 0 || phone.matches) return;
+  if (pinnedGid >= 0 || pinnedPin || phone.matches) return;
   if (gid < 0) { card.hidden = true; hoverGid = -1; return; }
   if (gid !== hoverGid || card.hidden) {
     // Re-render only when the building changes, so the photo is not reloaded every frame.
@@ -1526,7 +1575,43 @@ function showCard(gid, x, y) {
   }
   placeCard(x, y);
 }
+// The card of a monument without a building: opened by a click on its diamond, redrawn when its register shard arrives.
+function renderPin() {
+  const p = pinnedPin;
+  if (!p) return;
+  const reg = registerOf(+p.nr, renderPin);
+  const nr = `${LANG === 'nl' ? 'nr.' : 'no.'} ${p.nr}`;
+  card.innerHTML = `<button class="card-close" aria-label="Close">×</button>
+    ${reg?.photos?.length ? photosHtml(null, null, '', true, reg) : ''}
+    <header class="card-head" style="background:${PIN_COLOR};color:${inkOn(PIN_COLOR)}">
+      <h3>${esc(p.name)}</h3>
+      <p class="addr"><span>${esc([p.kind, t('National monument')].filter(Boolean).join(' · '))}</span></p>
+      <div class="when"><span class="period">${t('A monument without a BAG building: it is marked where the register places it.')}</span></div>
+    </header>
+    ${reg?.text ? `<section class="register"><h4>${t('From the register')}</h4><p class="extract" lang="nl">${esc(reg.text)}</p>
+      <p class="reg-main">${link(reg.url, `${t('View in the Rijksmonumentenregister')} (${nr})`)}</p></section>` : ''}
+    ${reg?.works?.length ? `<section><h4>${t('History of the building')}</h4><ul class="works">${reg.works.map(workHtml).join('')}</ul></section>` : ''}
+    ${makersSection(reg)}
+    <section class="sources"><h4>${t('Read more')}</h4><p>${[
+      link(reg?.url || `https://monumentenregister.cultureelerfgoed.nl/monumenten/${p.nr}`, t('Monument register')),
+      reg?.kb && link(reg.kb, 'Kennisbank RCE'),
+      reg?.cho && link(reg.cho, `${t('Linked Data Voorziening')} (CHO ${reg.cho.split('/').pop()})`),
+    ].filter(Boolean).join(', ')}</p></section>`;
+  wireSlides();
+  card.classList.add('pinned');
+  card.hidden = false;
+  card.querySelector('.card-close').onclick = () => pinCard(-1);
+  placeCard(...lastPin);
+}
+function openPin(p, x, y) {
+  pinCard(-1);
+  pinnedPin = p;
+  lastPin = [x, y];
+  collapsePanelOnPhone();
+  renderPin();
+}
 function pinCard(gid, x, y) {
+  pinnedPin = null;
   pinnedGid = gid;
   hoverGid = -1;
   uniforms.uSelected.value = gid;
@@ -1546,10 +1631,13 @@ addEventListener('keydown', e => { if (e.key === 'Escape') pinCard(-1); });
 
 // A click (not a drag) pins the building under the pointer, or clears the pin on empty ground.
 let pointer = null, dragging = false, downAt = null;
-canvas.addEventListener('pointermove', e => { pointer = [e.clientX, e.clientY]; });
+canvas.addEventListener('pointermove', e => {
+  pointer = [e.clientX, e.clientY];
+  if (pins.length && !dragging) canvas.style.cursor = pinAt(e.clientX, e.clientY) ? 'pointer' : '';
+});
 canvas.addEventListener('pointerdown', e => {
   dragging = true; downAt = [e.clientX, e.clientY];
-  if (pinnedGid < 0 && !ARCH.on) card.hidden = true;
+  if (pinnedGid < 0 && !pinnedPin && !ARCH.on) card.hidden = true;
 });
 canvas.addEventListener('pointerup', e => {
   dragging = false;
@@ -1560,12 +1648,14 @@ canvas.addEventListener('pointerup', e => {
     return;
   }
   if (ARCH.on) { archClick(e.clientX, e.clientY); return; }
+  const pn = pinAt(e.clientX, e.clientY);
+  if (pn) { openPin(pn, e.clientX, e.clientY); return; }
   const mk = markerAt(e.clientX, e.clientY);
   if (mk) { card.hidden = true; flyTo(mk[0], mk[1], () => pinCard(mk[2], innerWidth * 0.62, innerHeight * 0.22), 420); return; }
   const gid = pick(e.clientX, e.clientY);
   pinCard(gid === pinnedGid ? -1 : gid, e.clientX, e.clientY);
 });
-canvas.addEventListener('pointerleave', () => { pointer = null; if (pinnedGid < 0 && !ARCH.on) card.hidden = true; uniforms.uHover.value = -1; });
+canvas.addEventListener('pointerleave', () => { pointer = null; if (pinnedGid < 0 && !pinnedPin && !ARCH.on) card.hidden = true; uniforms.uHover.value = -1; });
 
 // ---------- Flying to a building ----------
 let bagIndex = null;
@@ -2668,6 +2758,7 @@ renderer.setAnimationLoop(now => {
   uniforms.uFog.value.set(dist * 1.6, dist * 4);
   if (frame % 6 === 0) updateLabels(dist);
   stepVillages(dist);
+  stepPins(dist);
   if (playing) {
     if (now < playHold) {
       // resting at an end: the last flights settle
