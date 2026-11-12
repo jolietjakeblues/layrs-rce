@@ -998,6 +998,7 @@ function stepVillages(dist) {
 // ---------- Monuments without a building ----------
 // The national monuments the register gives no BAG pand (statues, bridges, walls, houses it does not link): a diamond at
 // the register's geometry (pipeline/s08_pins.py), clicked like a building. Its card is the monument's entry in the register.
+const PIN_SIZE = 0.0085, PIN_REACH = 11;  // marker size (screen height) and how near the pointer must be, in pixels
 const PIN_COLOR = '#9a3b2e', PIN_FAR = Math.max(16000, config.home.span * 1.2);  // a municipality opens far out: the markers show from there
 let pinnedPin = null;
 const pinGroup = new THREE.Group();
@@ -1006,13 +1007,13 @@ const pinTexture = (() => {
   const c = document.createElement('canvas');
   c.width = c.height = 64;
   const x = c.getContext('2d');
-  x.beginPath(); x.moveTo(32, 4); x.lineTo(60, 32); x.lineTo(32, 60); x.lineTo(4, 32); x.closePath();
-  x.fillStyle = PIN_COLOR; x.fill(); x.lineWidth = 6; x.strokeStyle = '#fff'; x.stroke();
+  x.beginPath(); x.moveTo(32, 2); x.lineTo(62, 32); x.lineTo(32, 62); x.lineTo(2, 32); x.closePath();
+  x.fillStyle = PIN_COLOR; x.fill(); x.lineWidth = 8; x.strokeStyle = 'rgba(255,255,255,0.9)'; x.stroke();
   return new THREE.CanvasTexture(c);
 })();
 const pins = (config.pins || []).map(p => {
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: pinTexture, sizeAttenuation: false, depthTest: false, transparent: true }));
-  s.scale.set(0.022, 0.022, 1);
+  s.scale.set(PIN_SIZE, PIN_SIZE, 1);  // a fraction of the screen's height, so a dot of about 6 px: the roofs stay the picture
   s.position.set(p.x, 14, p.z);
   s.renderOrder = 10;
   pinGroup.add(s);
@@ -1022,7 +1023,7 @@ function stepPins(dist) { pinGroup.visible = !ARCH.on && dist < PIN_FAR; }
 const pinScreen = new THREE.Vector3();
 function pinAt(x, y) {
   if (!pinGroup.visible) return null;
-  let best = null, bd = 16;
+  let best = null, bd = PIN_REACH;
   for (const p of pins) {
     pinScreen.set(p.x, 14, p.z).project(camera);
     const d = Math.hypot((pinScreen.x + 1) / 2 * innerWidth - x, (1 - pinScreen.y) / 2 * innerHeight - y);
